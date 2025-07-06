@@ -1,0 +1,17 @@
+{
+  "name": "bamn-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client"
+  ],
+  "scripts": {
+    "client": "cd client && npm run dev",
+    "server": "cd server && bash -c 'source venv/bin/activate && uvicorn main:app --reload --port 8000'",
+    "dev": "concurrently \"npm run client\" \"npm run server\"",
+    "install:all": "npm install && cd client && npm install && cd ../server && python3 -m venv venv && bash -c 'source venv/bin/activate && pip install -r requirements.txt'"
+  },
+  "dependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
