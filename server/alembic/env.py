@@ -29,7 +29,9 @@ target_metadata = Base.metadata
 # ... etc.
 
 def get_url():
-    return settings.DATABASE_URL
+    """Get database URL with correct psycopg3 dialect"""
+    url = settings.DATABASE_URL
+    return url.replace("postgresql://", "postgresql+psycopg://")
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -41,7 +43,6 @@ def run_migrations_offline() -> None:
 
     Calls to context.execute() here emit the given string to the
     script output.
-
     """
     url = get_url()
     context.configure(
@@ -60,7 +61,6 @@ def run_migrations_online() -> None:
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
-
     """
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
@@ -72,7 +72,8 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, 
+            target_metadata=target_metadata
         )
 
         with context.begin_transaction():
