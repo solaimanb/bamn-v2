@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from typing import List, Optional, Any
 from sqlalchemy import or_, and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.models.mentor import Mentor
 from app.models.enums import ModerationStatus
@@ -27,8 +27,8 @@ router = APIRouter(tags=["Mentors"])
     No authentication required - this endpoint is public.
     """
 )
-async def list_mentors(
-    db: AsyncSession = Depends(deps.get_db),
+def list_mentors(
+    db: Session = Depends(deps.get_db),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Results per page"),
     keyword: Optional[str] = Query(None, description="Search across name, institution, research interests"),
@@ -59,10 +59,10 @@ async def list_mentors(
     
     # Apply pagination
     count_query = select(func.count()).select_from(query.subquery())
-    total = await db.scalar(count_query)
+    total = db.scalar(count_query)
     
     query = query.offset((page - 1) * page_size).limit(page_size)
-    result = await db.execute(query)
+    result = db.execute(query)
     mentors = result.scalars().all()
     
     return mentors
@@ -77,8 +77,8 @@ async def list_mentors(
     No authentication required - this endpoint is public.
     """
 )
-async def get_globe_data(
-    db: AsyncSession = Depends(deps.get_db),
+def get_globe_data(
+    db: Session = Depends(deps.get_db),
     research_interests: List[str] = Query([], description="Filter by research interests")
 ) -> List[GlobeVisualization]:
     """Get mentor data for globe visualization"""
@@ -88,7 +88,7 @@ async def get_globe_data(
         for interest in research_interests:
             query = query.where(Mentor.research_interests.any(interest))
     
-    result = await db.execute(query)
+    result = db.execute(query)
     mentors = result.scalars().all()
     return mentors
 
@@ -102,16 +102,16 @@ async def get_globe_data(
     No authentication required - this endpoint is public.
     """
 )
-async def get_mentor(
+def get_mentor(
     mentor_id: str,
-    db: AsyncSession = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db)
 ) -> MentorResponse:
     """Get a specific mentor profile"""
     query = select(Mentor).where(
         Mentor.id == mentor_id,
         Mentor.moderation_status == ModerationStatus.APPROVED
     )
-    result = await db.execute(query)
+    result = db.execute(query)
     mentor = result.scalar_one_or_none()
     
     if not mentor:
@@ -128,10 +128,10 @@ async def get_mentor(
     summary="Update Profile",
     description="Update current mentor's profile. Authentication required."
 )
-async def update_profile(
+def update_profile(
     update_data: MentorUpdate,
     current_mentor: Mentor = Depends(deps.get_current_mentor),
-    db: AsyncSession = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db)
 ) -> MentorResponse:
     """Update authenticated mentor's profile"""
     for field, value in update_data.model_dump(exclude_unset=True).items():
@@ -141,8 +141,8 @@ async def update_profile(
     current_mentor.moderation_status = ModerationStatus.PENDING
     
     db.add(current_mentor)
-    await db.commit()
-    await db.refresh(current_mentor)
+    db.commit()
+    db.refresh(current_mentor)
     
     return current_mentor
 
@@ -152,7 +152,7 @@ async def update_profile(
     summary="Get Own Profile",
     description="Get current mentor's profile. Authentication required."
 )
-async def get_own_profile(
+def get_own_profile(
     current_mentor: Mentor = Depends(deps.get_current_mentor)
 ) -> MentorResponse:
     """Get authenticated mentor's profile"""

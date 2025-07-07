@@ -17,7 +17,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from typing import Any
 from datetime import timedelta
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, verify_password, get_password_hash, validate_password
 from app.core.config import settings
@@ -37,14 +37,14 @@ router = APIRouter(
     summary="Login",
     description="Login with email and password to get access token. Works for both mentors and admins."
 )
-async def login(
+def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db)
 ) -> Any:
     """OAuth2 compatible token login with email/password"""
     # First try admin login
     query = select(User).where(User.email == form_data.username)
-    result = await db.execute(query)
+    result = db.execute(query)
     user = result.scalar_one_or_none()
     
     if user and verify_password(form_data.password, user.hashed_password):
@@ -59,7 +59,7 @@ async def login(
     
     # If not admin, try mentor login
     query = select(Mentor).where(Mentor.email == form_data.username)
-    result = await db.execute(query)
+    result = db.execute(query)
     mentor = result.scalar_one_or_none()
     
     if not mentor or \
@@ -93,14 +93,13 @@ async def login(
     summary="Register Mentor",
     description="Register a new mentor account"
 )
-async def register_mentor(
+def register_mentor(
     mentor_in: MentorCreate,
-    db: AsyncSession = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db)
 ) -> Any:
     """Register a new mentor"""
-    # Check if email already exists
     query = select(Mentor).where(Mentor.email == mentor_in.email)
-    result = await db.execute(query)
+    result = db.execute(query)
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -121,8 +120,8 @@ async def register_mentor(
     )
     
     db.add(mentor)
-    await db.commit()
-    await db.refresh(mentor)
+    db.commit()
+    db.refresh(mentor)
     
     return mentor
 
@@ -133,24 +132,22 @@ async def register_mentor(
     summary="Register OAuth Mentor",
     description="Register a new mentor account using OAuth (Google or ORCID)"
 )
-async def register_oauth_mentor(
+def register_oauth_mentor(
     mentor_in: OAuthMentorCreate,
-    db: AsyncSession = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db)
 ) -> Any:
     """Register a new mentor with OAuth"""
-    # Check if email already exists
     query = select(Mentor).where(Mentor.email == mentor_in.email)
-    result = await db.execute(query)
+    result = db.execute(query)
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     
-    # Check if OAuth ID already exists
     if mentor_in.auth_provider == AuthProvider.GOOGLE:
         query = select(Mentor).where(Mentor.google_id == mentor_in.google_id)
-        result = await db.execute(query)
+        result = db.execute(query)
         if result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -159,7 +156,7 @@ async def register_oauth_mentor(
     
     if mentor_in.auth_provider == AuthProvider.ORCID:
         query = select(Mentor).where(Mentor.orcid_id == mentor_in.orcid_id)
-        result = await db.execute(query)
+        result = db.execute(query)
         if result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -172,8 +169,8 @@ async def register_oauth_mentor(
     )
     
     db.add(mentor)
-    await db.commit()
-    await db.refresh(mentor)
+    db.commit()
+    db.refresh(mentor)
     
     return mentor
 
@@ -182,9 +179,9 @@ async def register_oauth_mentor(
     summary="Google OAuth Login",
     description="Login with Google OAuth token"
 )
-async def google_login(
+def google_login(
     google_token: str = Body(..., embed=True),
-    db: AsyncSession = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db)
 ) -> Any:
     """Login with Google OAuth"""
     # TODO: Implement Google token verification
@@ -193,7 +190,7 @@ async def google_login(
         Mentor.auth_provider == AuthProvider.GOOGLE,
         Mentor.google_id == google_token
     )
-    result = await db.execute(query)
+    result = db.execute(query)
     mentor = result.scalar_one_or_none()
     
     if not mentor:
@@ -222,9 +219,9 @@ async def google_login(
     summary="ORCID OAuth Login",
     description="Login with ORCID OAuth token"
 )
-async def orcid_login(
+def orcid_login(
     orcid_token: str = Body(..., embed=True),
-    db: AsyncSession = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db)
 ) -> Any:
     """Login with ORCID OAuth"""
     # TODO: Implement ORCID token verification
@@ -233,7 +230,7 @@ async def orcid_login(
         Mentor.auth_provider == AuthProvider.ORCID,
         Mentor.orcid_id == orcid_token
     )
-    result = await db.execute(query)
+    result = db.execute(query)
     mentor = result.scalar_one_or_none()
     
     if not mentor:

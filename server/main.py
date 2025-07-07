@@ -1,8 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 from app.core.config import settings
 from app.api.v1.router import api_router, tags_metadata
@@ -12,11 +10,9 @@ import logging
 import time
 from typing import Callable
 
-# Remove all existing handlers
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
-# Configure root logger
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -24,13 +20,12 @@ logging.basicConfig(
     force=True
 )
 
-# Configure specific loggers
 default_level = "WARNING" if settings.ENVIRONMENT == "production" else "INFO"
 loggers_config = {
     'sqlalchemy.engine': settings.SQL_LOG_LEVEL,
     'passlib': default_level,
     'uvicorn.error': default_level,
-    'uvicorn.access': 'WARNING', 
+    'uvicorn.access': 'WARNING',
     'fastapi': default_level
 }
 
@@ -94,24 +89,23 @@ async def log_requests(request: Request, call_next: Callable):
     skip_paths = ["/docs", "/redoc", f"{settings.API_V1_STR}/openapi.json"]
     if request.url.path in skip_paths or request.url.path.endswith((".js", ".css", ".ico")):
         return await call_next(request)
-    
+
     if not request.url.path.startswith(settings.API_V1_STR):
         return await call_next(request)
-    
+
     start_time = time.time()
     response = await call_next(request)
     duration = time.time() - start_time
-    
+
     logger.info(
         f"API Request | "
         f"{request.method} {request.url.path} | "
         f"Status: {response.status_code} | "
         f"Duration: {duration:.2f}s"
     )
-    
+
     return response
 
-# Error logging middleware
 @app.middleware("http")
 async def catch_exceptions(request: Request, call_next: Callable):
     try:

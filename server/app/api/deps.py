@@ -1,13 +1,13 @@
-from typing import AsyncGenerator, Optional
+from typing import Generator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select
 from uuid import UUID
 
 from app.core.config import settings
-from app.db.session import AsyncSessionLocal
+from app.db.session import SessionLocal
 from app.models.mentor import Mentor
 from app.models.auth import User
 from app.core.security import verify_password
@@ -17,16 +17,16 @@ oauth2_scheme = OAuth2PasswordBearer(
     scheme_name="JWT"
 )
 
-async def get_db() -> AsyncGenerator:
+def get_db() -> Generator:
     """Dependency for getting database session"""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-async def get_current_mentor(
-    db: AsyncSession = Depends(get_db),
+def get_current_mentor(
+    db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
 ) -> Mentor:
     """
@@ -52,7 +52,7 @@ async def get_current_mentor(
         raise credentials_exception
     
     stmt = select(Mentor).where(Mentor.id == mentor_id)
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     mentor = result.scalar_one_or_none()
     
     if not mentor:
@@ -64,8 +64,8 @@ async def get_current_mentor(
         )
     return mentor
 
-async def verify_admin(
-    db: AsyncSession = Depends(get_db),
+def verify_admin(
+    db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
 ) -> bool:
     """
@@ -88,7 +88,7 @@ async def verify_admin(
             )
             
         stmt = select(User).where(User.id == user_id, User.role == "admin")
-        result = await db.execute(stmt)
+        result = db.execute(stmt)
         admin = result.scalar_one_or_none()
         
         if not admin:
@@ -105,8 +105,8 @@ async def verify_admin(
             detail="Could not validate credentials"
         )
 
-async def get_optional_mentor(
-    db: AsyncSession = Depends(get_db),
+def get_optional_mentor(
+    db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
 ) -> Optional[Mentor]:
     """
@@ -114,6 +114,6 @@ async def get_optional_mentor(
     Used for endpoints that work both for authenticated and anonymous users.
     """
     try:
-        return await get_current_mentor(db, token)
+        return get_current_mentor(db, token)
     except HTTPException:
         return None 
