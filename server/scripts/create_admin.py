@@ -2,10 +2,10 @@ import asyncio
 from sqlalchemy import select
 from app.core.security import get_password_hash
 from app.models.auth import User
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionMaker
 
 async def create_admin():
-    async with AsyncSessionLocal() as session:
+    async with AsyncSessionMaker() as session:
         # Check if admin already exists
         query = select(User).where(User.email == "bamn@gmail.com")
         result = await session.execute(query)

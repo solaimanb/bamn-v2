@@ -5,6 +5,7 @@ import logging
 sql_logger = logging.getLogger('sqlalchemy.engine')
 sql_logger.setLevel(getattr(logging, settings.SQL_LOG_LEVEL))
 
+# Use asyncpg driver for PostgreSQL
 async_database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 engine = create_async_engine(
