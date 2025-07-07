@@ -31,7 +31,7 @@ target_metadata = Base.metadata
 def get_url():
     """Get database URL with correct psycopg dialect"""
     url = settings.DATABASE_URL
-    return url.replace("postgresql://", "postgresql+psycopg://")
+    return url.replace("postgresql://", "postgresql+psycopg2://")
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
