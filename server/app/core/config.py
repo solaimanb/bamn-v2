@@ -14,7 +14,9 @@ class Settings(BaseSettings):
     
     # Logging
     LOG_LEVEL: str = "INFO"
-    SQL_LOG_LEVEL: str = "WARNING"  # Set to "INFO" to see SQL queries
+    SQL_LOG_LEVEL: str = "WARNING" 
+    LOG_FORMAT: str = "%(levelname)s: %(message)s"
+    LOG_DATE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
     
     # Security
     SECRET_KEY: str

@@ -10,29 +10,32 @@ import logging
 import time
 from typing import Callable
 
+# Clear existing handlers
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
+# Set up basic logging configuration
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
+    format=settings.LOG_FORMAT,
+    datefmt=settings.LOG_DATE_FORMAT,
     force=True
 )
 
-default_level = "WARNING" if settings.ENVIRONMENT == "production" else "INFO"
+# Configure loggers with minimal output
 loggers_config = {
-    'sqlalchemy.engine': settings.SQL_LOG_LEVEL,
-    'passlib': default_level,
-    'uvicorn.error': default_level,
+    'sqlalchemy.engine': 'WARNING',
+    'passlib': 'WARNING',
+    'uvicorn.error': 'WARNING',
     'uvicorn.access': 'WARNING',
-    'fastapi': default_level
+    'fastapi': 'WARNING'
 }
 
+# Apply logger configurations
 for logger_name, level in loggers_config.items():
     logger = logging.getLogger(logger_name)
     logger.setLevel(getattr(logging, level))
-    logger.propagate = settings.ENVIRONMENT == "development"
+    logger.propagate = settings.ENVIRONMENT == "development" and level == "INFO"
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +76,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Set up CORS
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
@@ -83,26 +85,30 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-# Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next: Callable):
-    skip_paths = ["/docs", "/redoc", f"{settings.API_V1_STR}/openapi.json"]
-    if request.url.path in skip_paths or request.url.path.endswith((".js", ".css", ".ico")):
+    if not request.url.path.startswith(settings.API_V1_STR):
         return await call_next(request)
 
-    if not request.url.path.startswith(settings.API_V1_STR):
+    skip_paths = ["/docs", "/redoc", f"{settings.API_V1_STR}/openapi.json"]
+    if request.url.path in skip_paths or request.url.path.endswith((".js", ".css", ".ico")):
         return await call_next(request)
 
     start_time = time.time()
     response = await call_next(request)
     duration = time.time() - start_time
 
-    logger.info(
-        f"API Request | "
-        f"{request.method} {request.url.path} | "
-        f"Status: {response.status_code} | "
-        f"Duration: {duration:.2f}s"
-    )
+    if response.status_code >= 400:
+        logger.warning(
+            f"{request.method} {request.url.path} | "
+            f"Status: {response.status_code} | "
+            f"Duration: {duration:.2f}s"
+        )
+    elif settings.DEBUG: 
+        logger.info(
+            f"{request.method} {request.url.path} | "
+            f"Status: {response.status_code}"
+        )
 
     return response
 
@@ -111,16 +117,11 @@ async def catch_exceptions(request: Request, call_next: Callable):
     try:
         return await call_next(request)
     except Exception as e:
-        logger.error(
-            f"Error | "
-            f"{request.method} {request.url.path} | "
-            f"Error: {str(e)}"
-        )
+        logger.error(f"{request.method} {request.url.path} | Error: {str(e)}")
         raise
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    logger.info("Health check requested")
     return {"status": "ok", "message": "BAMN - Server is running"}
