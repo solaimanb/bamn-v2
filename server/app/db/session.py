@@ -7,8 +7,8 @@ import logging
 sql_logger = logging.getLogger('sqlalchemy.engine')
 sql_logger.setLevel(getattr(logging, settings.SQL_LOG_LEVEL))
 
-# Convert the DATABASE_URL to async format (postgresql:// -> postgresql+asyncpg://)
-async_database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+# Convert the DATABASE_URL to async format for psycopg3
+async_database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
 
 engine = create_async_engine(
     async_database_url,
