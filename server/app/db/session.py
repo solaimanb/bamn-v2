@@ -7,29 +7,24 @@ import logging
 sql_logger = logging.getLogger('sqlalchemy.engine')
 sql_logger.setLevel(getattr(logging, settings.SQL_LOG_LEVEL))
 
-# Convert the DATABASE_URL to async format for psycopg3
-# For SQLAlchemy 1.4, we need to use postgresql+psycopg2 dialect
-async_database_url = settings.DATABASE_URL.replace(
-    "postgresql://", 
-    "postgresql+psycopg2://"
-)
+# Convert the DATABASE_URL to async format for asyncpg
+async_database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 engine = create_async_engine(
     async_database_url,
     pool_pre_ping=True,  # Verify connections before using from pool
-    pool_size=settings.DB_POOL_SIZE,  # Maximum number of connections in pool
-    pool_max_overflow=settings.DB_MAX_OVERFLOW,  # Maximum connections beyond pool_size
-    pool_timeout=settings.DB_POOL_TIMEOUT,  # Seconds to wait for available connection
-    pool_recycle=settings.DB_POOL_RECYCLE,  # Recycle connections after this many seconds
+    pool_size=20,  # Maximum number of connections in pool
+    max_overflow=10,  # Maximum number of connections that can be created beyond pool_size
+    pool_timeout=30,  # Seconds to wait for available connection
+    pool_recycle=1800,  # Recycle connections after 30 minutes
     echo=False,
-    future=True  # Enable SQLAlchemy 2.0 features in 1.4
+    future=True  # Enable SQLAlchemy 2.0 features
 )
 
 AsyncSessionLocal = sessionmaker(
-    bind=engine,  # Use bind instead of passing engine directly
+    engine,
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False,
-    future=True  # Enable SQLAlchemy 2.0 features in 1.4
+    autoflush=False
 )
