@@ -7,8 +7,8 @@ import logging
 sql_logger = logging.getLogger('sqlalchemy.engine')
 sql_logger.setLevel(getattr(logging, settings.SQL_LOG_LEVEL))
 
-# Convert the DATABASE_URL to async format for asyncpg
-async_database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+# Convert the DATABASE_URL to async format for psycopg
+async_database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
 
 engine = create_async_engine(
     async_database_url,
@@ -28,3 +28,10 @@ AsyncSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False
 )
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
