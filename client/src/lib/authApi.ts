@@ -1,6 +1,6 @@
 import api from './api';
 import { API_ROUTES, AUTH_STORAGE_KEY } from '../constants/api';
-import { User } from '../store/authStore';
+import { User } from '../types/api';
 
 export interface LoginResponse {
   access_token: string;
