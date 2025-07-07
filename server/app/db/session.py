@@ -13,13 +13,15 @@ async_database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+
 engine = create_async_engine(
     async_database_url,
     pool_pre_ping=True,
-    echo=False
+    echo=False,
+    future=True  # Enable SQLAlchemy 2.0 features in 1.4
 )
 
 AsyncSessionLocal = sessionmaker(
-    engine,
+    bind=engine,  # Use bind instead of passing engine directly
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
     autoflush=False,
+    future=True  # Enable SQLAlchemy 2.0 features in 1.4
 )
