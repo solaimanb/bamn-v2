@@ -294,8 +294,9 @@ class GlobeVisualization(BaseModel):
     """Schema for globe view data"""
     id: UUID4
     full_name: str
+    email: EmailStr
     institution: str
-    research_interests: List[str]  # For color coding pins
+    research_interests: List[str] 
     latitude: float
     longitude: float
     

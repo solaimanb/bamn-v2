@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.mentor import Mentor
 from app.models.enums import ModerationStatus
@@ -16,8 +16,8 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
     summary="List All Mentors",
     description="Get all mentor profiles with optional status filter. Admin only."
 )
-def list_all_mentors(
-    db: Session = Depends(deps.get_db),
+async def list_all_mentors(
+    db: AsyncSession = Depends(deps.get_db),
     _: bool = Depends(deps.verify_admin),
     status: Optional[ModerationStatus] = Query(None, description="Filter by moderation status")
 ) -> List[MentorResponse]:
@@ -25,7 +25,7 @@ def list_all_mentors(
     query = select(Mentor)
     if status:
         query = query.where(Mentor.moderation_status == status)
-    result = db.execute(query)
+    result = await db.execute(query)
     return result.scalars().all()
 
 @router.get(
@@ -34,13 +34,13 @@ def list_all_mentors(
     summary="List Pending Mentors",
     description="Get all mentor profiles pending approval. Admin only."
 )
-def list_pending_mentors(
-    db: Session = Depends(deps.get_db),
+async def list_pending_mentors(
+    db: AsyncSession = Depends(deps.get_db),
     _: bool = Depends(deps.verify_admin)
 ) -> List[MentorResponse]:
     """List pending mentor profiles"""
     query = select(Mentor).where(Mentor.moderation_status == ModerationStatus.PENDING)
-    result = db.execute(query)
+    result = await db.execute(query)
     return result.scalars().all()
 
 @router.put(
@@ -49,14 +49,14 @@ def list_pending_mentors(
     summary="Approve Mentor",
     description="Approve a pending mentor profile. Admin only."
 )
-def approve_mentor(
+async def approve_mentor(
     mentor_id: str,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     _: bool = Depends(deps.verify_admin)
 ) -> MentorResponse:
     """Approve a mentor profile"""
     query = select(Mentor).where(Mentor.id == mentor_id)
-    result = db.execute(query)
+    result = await db.execute(query)
     mentor = result.scalar_one_or_none()
     
     if not mentor:
@@ -67,8 +67,8 @@ def approve_mentor(
     
     mentor.moderation_status = ModerationStatus.APPROVED
     db.add(mentor)
-    db.commit()
-    db.refresh(mentor)
+    await db.commit()
+    await db.refresh(mentor)
     
     return mentor
 
@@ -78,14 +78,14 @@ def approve_mentor(
     summary="Reject Mentor",
     description="Reject a pending mentor profile. Admin only."
 )
-def reject_mentor(
+async def reject_mentor(
     mentor_id: str,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     _: bool = Depends(deps.verify_admin)
 ) -> MentorResponse:
     """Reject a mentor profile"""
     query = select(Mentor).where(Mentor.id == mentor_id)
-    result = db.execute(query)
+    result = await db.execute(query)
     mentor = result.scalar_one_or_none()
     
     if not mentor:
@@ -96,7 +96,7 @@ def reject_mentor(
     
     mentor.moderation_status = ModerationStatus.REJECTED
     db.add(mentor)
-    db.commit()
-    db.refresh(mentor)
+    await db.commit()
+    await db.refresh(mentor)
     
     return mentor
