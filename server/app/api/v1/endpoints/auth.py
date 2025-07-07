@@ -52,6 +52,12 @@ async def login(
             "access_token": create_access_token(
                 subject=str(user.id),
                 role=user.role,
+                user_data={
+                    "id": str(user.id),
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "role": user.role
+                },
                 expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
             ),
             "token_type": "bearer"
@@ -81,6 +87,28 @@ async def login(
         "access_token": create_access_token(
             subject=str(mentor.id),
             role="mentor",
+            user_data={
+                "id": str(mentor.id),
+                "email": mentor.email,
+                "full_name": mentor.full_name,
+                "role": "mentor",
+                "current_role": mentor.current_role,
+                "institution": mentor.institution,
+                "department": mentor.department,
+                "degrees": mentor.degrees,
+                "research_interests": mentor.research_interests,
+                "continent": mentor.continent,
+                "country": mentor.country,
+                "city": mentor.city,
+                "latitude": mentor.latitude,
+                "longitude": mentor.longitude,
+                "profile_picture_url": mentor.profile_picture_url,
+                "linkedin_url": mentor.linkedin_url,
+                "auth_provider": mentor.auth_provider.value,
+                "moderation_status": mentor.moderation_status.value,
+                "created_at": mentor.created_at.isoformat() if mentor.created_at else None,
+                "updated_at": mentor.updated_at.isoformat() if mentor.updated_at else None
+            },
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         ),
         "token_type": "bearer"
@@ -209,6 +237,28 @@ async def google_login(
         "access_token": create_access_token(
             subject=str(mentor.id),
             role="mentor",
+            user_data={
+                "id": str(mentor.id),
+                "email": mentor.email,
+                "full_name": mentor.full_name,
+                "role": "mentor",
+                "current_role": mentor.current_role,
+                "institution": mentor.institution,
+                "department": mentor.department,
+                "degrees": mentor.degrees,
+                "research_interests": mentor.research_interests,
+                "continent": mentor.continent,
+                "country": mentor.country,
+                "city": mentor.city,
+                "latitude": mentor.latitude,
+                "longitude": mentor.longitude,
+                "profile_picture_url": mentor.profile_picture_url,
+                "linkedin_url": mentor.linkedin_url,
+                "auth_provider": mentor.auth_provider.value,
+                "moderation_status": mentor.moderation_status.value,
+                "created_at": mentor.created_at.isoformat() if mentor.created_at else None,
+                "updated_at": mentor.updated_at.isoformat() if mentor.updated_at else None
+            },
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         ),
         "token_type": "bearer"
@@ -249,6 +299,28 @@ def orcid_login(
         "access_token": create_access_token(
             subject=str(mentor.id),
             role="mentor",
+            user_data={
+                "id": str(mentor.id),
+                "email": mentor.email,
+                "full_name": mentor.full_name,
+                "role": "mentor",
+                "current_role": mentor.current_role,
+                "institution": mentor.institution,
+                "department": mentor.department,
+                "degrees": mentor.degrees,
+                "research_interests": mentor.research_interests,
+                "continent": mentor.continent,
+                "country": mentor.country,
+                "city": mentor.city,
+                "latitude": mentor.latitude,
+                "longitude": mentor.longitude,
+                "profile_picture_url": mentor.profile_picture_url,
+                "linkedin_url": mentor.linkedin_url,
+                "auth_provider": mentor.auth_provider.value,
+                "moderation_status": mentor.moderation_status.value,
+                "created_at": mentor.created_at.isoformat() if mentor.created_at else None,
+                "updated_at": mentor.updated_at.isoformat() if mentor.updated_at else None
+            },
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         ),
         "token_type": "bearer"

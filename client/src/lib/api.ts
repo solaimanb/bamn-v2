@@ -1,10 +1,9 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiError } from '../types/api';
+import { getStoredToken } from './authApi';
 
 interface ErrorResponse {
-    message?: string;
-    code?: string;
-    details?: Record<string, unknown>;
+    detail: string;
 }
 
 const api = axios.create({
@@ -17,7 +16,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('token');
+        const token = getStoredToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -37,13 +36,10 @@ api.interceptors.response.use(
         };
 
         if (error.response) {
-            apiError.message = error.response.data?.message || error.message;
-            apiError.code = error.response.data?.code;
-            apiError.details = error.response.data?.details;
+            apiError.message = error.response.data?.detail || 'An unexpected error occurred';
 
             switch (error.response.status) {
                 case 401:
-                    localStorage.removeItem('token');
                     window.location.href = '/login';
                     break;
                 case 403:

@@ -12,11 +12,15 @@ export interface MentorFilters {
   city?: string;
 }
 
-export interface User {
+interface BaseUser {
   id: string;
   email: string;
   full_name: string;
-  role: string;
+  role: 'admin' | 'mentor';
+}
+
+export interface User extends BaseUser {
+  role: 'admin';
 }
 
 // Mentor types
@@ -37,6 +41,7 @@ export interface MentorBase {
 
 export interface MentorResponse extends MentorBase {
   id: string;
+  role: 'mentor';
   auth_provider: 'email' | 'google' | 'orcid';
   google_id?: string;
   orcid_id?: string;
@@ -66,9 +71,8 @@ export interface PaginatedResponse<T> {
   page_size: number;
 }
 
-// Error types
 export interface ApiError {
   message: string;
+  status?: number;
   code?: string;
-  details?: Record<string, unknown>;
 } 
