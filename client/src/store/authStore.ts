@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { MentorResponse, User } from '../types/api';
+import Cookies from 'js-cookie';
+import { AUTH_STORAGE_KEY } from '@/constants/api';
 
 export type AuthenticatedUser = User | MentorResponse;
 
@@ -17,10 +19,13 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  loading: false,
+  loading: true,
   error: null,
   setAuth: (user) => set({ user, loading: false, error: null }),
-  logout: () => set({ user: null, loading: false, error: null }),
+  logout: () => {
+    Cookies.remove(AUTH_STORAGE_KEY);
+    set({ user: null, loading: false, error: null });
+  },
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   isAdmin: () => {
