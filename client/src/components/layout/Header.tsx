@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Heart, Menu, LogOut } from 'lucide-react';
+import { Heart, Menu, LogOut } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
+import { SearchBar } from '@/components/common/SearchBar';
 
 export function Header() {
     const { user, logout, isMentor, loading } = useAuthStore();
@@ -30,15 +30,8 @@ export function Header() {
                     <span className="text-xl font-bold">BAMN</span>
                 </Link>
 
-                <div className="flex-1 max-w-2xl relative">
-                    <div className="relative">
-                        <Input
-                            type="search"
-                            placeholder="Search..."
-                            className="w-full pl-10 rounded-full"
-                        />
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    </div>
+                <div className="flex-1 max-w-2xl">
+                    <SearchBar />
                 </div>
 
                 <div className="flex items-center gap-4 flex-shrink-0">

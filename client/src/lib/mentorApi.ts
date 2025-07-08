@@ -21,12 +21,9 @@ export async function listMentors(
   return api.get(API_ROUTES.MENTORS.LIST, { params });
 }
 
-export async function getMentorById(id: string): Promise<MentorResponse> {
-  return api.get(API_ROUTES.MENTORS.DETAIL(id));
-}
-
-export async function getGlobeData(): Promise<GlobeVisualization[]> {
-  return api.get(API_ROUTES.MENTORS.GLOBE);
+export async function getMentorGlobeData(researchInterests?: string[]): Promise<GlobeVisualization[]> {
+  const params = researchInterests ? { research_interests: researchInterests } : undefined;
+  return api.get(API_ROUTES.MENTORS.GLOBE, { params });
 }
 
 export async function getOwnProfile(): Promise<MentorResponse> {

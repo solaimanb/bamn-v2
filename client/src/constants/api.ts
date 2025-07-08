@@ -10,10 +10,10 @@ export const API_ROUTES = {
   
   // Mentor endpoints
   MENTORS: {
-    LIST: '/mentors',
-    GLOBE: '/mentors/globe',
-    PROFILE: '/mentors/me',
-    DETAIL: (id: string) => `/mentors/${id}`,
+    LIST: '/search',
+    GLOBE: '/globe',
+    PROFILE: '/me',
+    DETAIL: (id: string) => `/${id}`,
   },
   
   // Admin endpoints

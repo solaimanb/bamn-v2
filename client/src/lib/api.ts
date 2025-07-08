@@ -6,8 +6,10 @@ interface ErrorResponse {
     detail: string;
 }
 
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    baseURL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -51,9 +53,13 @@ api.interceptors.response.use(
                 case 422:
                     apiError.code = 'VALIDATION_ERROR';
                     break;
+                case 500:
+                    apiError.code = 'SERVER_ERROR';
+                    apiError.message = 'Server error occurred. Please try again later.';
+                    break;
             }
         } else if (error.request) {
-            apiError.message = 'No response received from server';
+            apiError.message = 'No response received from server. Please check your connection.';
             apiError.code = 'NETWORK_ERROR';
         }
 

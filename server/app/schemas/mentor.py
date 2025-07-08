@@ -247,8 +247,14 @@ class SearchFilters(BaseModel):
         }
 
 class SearchResponse(BaseModel):
-    """Search results for globe visualization"""
-    results: List[MentorProfile]
+    """Search results with pagination"""
+    items: List[MentorResponse]
+    total: int
+    page: int
+    page_size: int
+
+    class Config:
+        from_attributes = True
 
 class TagSuggestion(BaseModel):
     """Schema for tag auto-suggestions"""
@@ -294,8 +300,6 @@ class GlobeVisualization(BaseModel):
     """Schema for globe view data"""
     id: UUID4
     full_name: str
-    email: EmailStr
-    institution: str
     research_interests: List[str] 
     latitude: float
     longitude: float

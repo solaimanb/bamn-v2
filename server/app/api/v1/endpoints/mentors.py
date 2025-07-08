@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from typing import List, Optional, Any
 from sqlalchemy import or_, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from app.models.mentor import Mentor
 from app.models.enums import ModerationStatus
@@ -16,6 +17,110 @@ from app.schemas.mentor import (
 from app.api import deps
 
 router = APIRouter(tags=["Mentors"])
+
+@router.get(
+    "/search",
+    response_model=SearchResponse,
+    summary="Search Mentors",
+    description="""
+    Advanced search for mentors with multiple filtering options:
+    - Full-text search across names, institutions, and research interests
+    - Filter by research interest tags
+    - Geographic filtering by continent, country, and city
+    - Combined filtering support
+    """
+)
+async def search_mentors(
+    db: AsyncSession = Depends(deps.get_db),
+    keyword: Optional[str] = Query(None, description="Full-text search term"),
+    research_interests: List[str] = Query([], description="Filter by research interest tags"),
+    continent: Optional[str] = Query(None, description="Filter by continent"),
+    country: Optional[str] = Query(None, description="Filter by country"),
+    city: Optional[str] = Query(None, description="Filter by city"),
+    page: int = Query(1, description="Page number"),
+    page_size: int = Query(10, description="Results per page")
+) -> SearchResponse:
+    """Advanced search for mentors with multiple filtering options"""
+    query = select(Mentor).where(Mentor.moderation_status == ModerationStatus.APPROVED)
+    
+    # Full-text search across all relevant fields
+    if keyword:
+        keyword = keyword.strip().lower()
+        query = query.where(
+            or_(
+                func.lower(Mentor.full_name).contains(keyword),
+                func.lower(Mentor.institution).contains(keyword),
+                func.lower(Mentor.department).contains(keyword),
+                func.lower(Mentor.current_role).contains(keyword),
+                func.lower(func.array_to_string(Mentor.degrees, ' ')).contains(keyword),
+                func.lower(func.array_to_string(Mentor.research_interests, ' ')).contains(keyword),
+                func.lower(Mentor.city).contains(keyword),
+                func.lower(Mentor.country).contains(keyword),
+                func.lower(Mentor.continent).contains(keyword)
+            )
+        )
+    
+    # Research interest tags filter (keep this strict for exact matches)
+    if research_interests:
+        interests = [interest.lower() for interest in research_interests]
+        query = query.where(
+            and_(*[
+                func.lower(func.any(Mentor.research_interests)) == interest
+                for interest in interests
+            ])
+        )
+    
+    # Geographic filters
+    if continent:
+        query = query.where(func.lower(Mentor.continent) == continent.lower())
+    if country:
+        query = query.where(func.lower(Mentor.country) == country.lower())
+    if city:
+        query = query.where(func.lower(Mentor.city) == city.lower())
+    
+    # Get total count
+    count_query = select(func.count()).select_from(query.subquery())
+    total = await db.scalar(count_query)
+    
+    # Apply pagination
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    mentors = result.scalars().all()
+    
+    return SearchResponse(
+        items=mentors,
+        total=total,
+        page=page,
+        page_size=page_size
+    )
+
+@router.get(
+    "/tags/suggest",
+    response_model=List[str],
+    summary="Tag Auto-suggestions",
+    description="Get research interest tag suggestions based on partial input"
+)
+async def suggest_tags(
+    db: AsyncSession = Depends(deps.get_db),
+    prefix: str = Query(..., min_length=1, description="Tag prefix to search for"),
+    limit: int = Query(10, le=50, description="Maximum number of suggestions to return")
+) -> List[str]:
+    """Get tag suggestions for auto-complete"""
+    query = select(Mentor.research_interests).where(
+        Mentor.moderation_status == ModerationStatus.APPROVED
+    )
+    result = await db.execute(query)
+    all_tags = result.scalars().all()
+    
+    unique_tags = set(tag.lower() for tags in all_tags for tag in tags)
+    
+    prefix = prefix.lower()
+    matching_tags = [
+        tag for tag in unique_tags 
+        if tag.startswith(prefix)
+    ]
+    
+    return sorted(matching_tags)[:limit]
 
 @router.put(
     "/me",
@@ -32,7 +137,6 @@ async def update_profile(
     for field, value in update_data.model_dump(exclude_unset=True).items():
         setattr(current_mentor, field, value)
     
-    # Profile updates need to be re-approved
     current_mentor.moderation_status = ModerationStatus.PENDING
     
     db.add(current_mentor)
@@ -89,7 +193,7 @@ async def get_globe_data(
     """
 )
 async def get_mentor(
-    mentor_id: str,
+    mentor_id: UUID = Path(..., description="The UUID of the mentor to retrieve"),
     db: AsyncSession = Depends(deps.get_db)
 ) -> MentorResponse:
     """Get a specific mentor profile"""
@@ -107,53 +211,3 @@ async def get_mentor(
         )
     
     return mentor
-
-@router.get(
-    "/",
-    response_model=List[MentorResponse],
-    summary="List Mentors",
-    description="""
-    Get all approved mentor profiles.
-    Results are paginated and can be filtered by various criteria.
-    No authentication required - this endpoint is public.
-    """
-)
-async def list_mentors(
-    db: AsyncSession = Depends(deps.get_db),
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Results per page"),
-    keyword: Optional[str] = Query(None, description="Search across name, institution, research interests"),
-    continent: Optional[str] = Query(None, description="Filter by continent"),
-    country: Optional[str] = Query(None, description="Filter by country"),
-    city: Optional[str] = Query(None, description="Filter by city")
-) -> List[MentorResponse]:
-    """List all approved mentor profiles with filtering and pagination"""
-    query = select(Mentor).where(Mentor.moderation_status == ModerationStatus.APPROVED)
-    
-    # Apply filters
-    if keyword:
-        query = query.where(
-            or_(
-                Mentor.full_name.ilike(f"%{keyword}%"),
-                Mentor.institution.ilike(f"%{keyword}%"),
-                Mentor.department.ilike(f"%{keyword}%"),
-                Mentor.research_interests.any(keyword)
-            )
-        )
-    
-    if continent:
-        query = query.where(Mentor.continent == continent)
-    if country:
-        query = query.where(Mentor.country == country)
-    if city:
-        query = query.where(Mentor.city == city)
-    
-    # Apply pagination
-    count_query = select(func.count()).select_from(query.subquery())
-    total = await db.scalar(count_query)
-    
-    query = query.offset((page - 1) * page_size).limit(page_size)
-    result = await db.execute(query)
-    mentors = result.scalars().all()
-    
-    return mentors

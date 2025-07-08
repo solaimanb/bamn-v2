@@ -10,6 +10,9 @@ export interface MentorFilters {
   continent?: string;
   country?: string;
   city?: string;
+  research_interests?: string[];
+  page?: number;
+  page_size?: number;
 }
 
 interface BaseUser {
