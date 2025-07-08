@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-import { SearchBar } from '@/components/common/SearchBar';
 
 export function Header() {
     const { user, logout, isMentor, loading } = useAuthStore();
@@ -24,24 +23,20 @@ export function Header() {
     };
 
     return (
-        <header className="container mx-auto bg-background">
-            <div className="container flex h-16 items-center justify-between gap-4">
+        <header className="absolute top-0 left-0 right-0 z-50">
+            <div className="container mx-auto flex h-16 items-center justify-between gap-4">
                 <Link href="/" className="flex-shrink-0">
                     <span className="text-xl font-bold">BAMN</span>
                 </Link>
 
-                <div className="flex-1 max-w-2xl">
-                    <SearchBar />
-                </div>
-
                 <div className="flex items-center gap-4 flex-shrink-0">
-                    {!loading && !user && (
+                    {/* {!loading && !user && (
                         <Link href="/mentor-registration" className="hidden sm:block">
                             <Button variant="ghost" size="sm">
                                 Become a mentor
                             </Button>
                         </Link>
-                    )}
+                    )} */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="icon">

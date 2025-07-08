@@ -2,28 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import type { MouseEvent } from 'react';
-import { Search, X, Tag, MapPin, Building, Globe, ChevronDown } from 'lucide-react';
+import { Tag, Globe, X } from 'lucide-react';
 import { listMentors } from '@/lib/mentorApi';
 import { useDebounce } from '@/hooks/useDebounce';
 import { MentorResponse, MentorFilters } from '@/types/api';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     Command,
-    CommandEmpty,
     CommandGroup,
     CommandInput,
-    CommandItem,
     CommandList,
     CommandSeparator,
 } from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Mentor } from '@/types/mentor';
+import { useSearchStore } from '@/store/searchStore';
 
 interface LocationFilter {
     continent?: string;
@@ -31,18 +23,19 @@ interface LocationFilter {
     city?: string;
 }
 
+const convertToMentor = (response: MentorResponse): Mentor => ({
+    ...response,
+    linkedin_url: null, // These fields are not in the API response
+    profile_picture_url: null // but required by the Mentor type
+});
+
 export function SearchBar() {
-    const [open, setOpen] = useState(false);
+    const setMentors = useSearchStore(state => state.setMentors);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
     const [locationFilter, setLocationFilter] = useState<LocationFilter>({});
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [mentors, setMentors] = useState<MentorResponse[]>([]);
     const [page, setPage] = useState(1);
-    const [totalMentors, setTotalMentors] = useState(0);
-    const [hasMore, setHasMore] = useState(false);
     const PAGE_SIZE = 10;
     const debouncedSearch = useDebounce(searchTerm, 500);
 
@@ -67,7 +60,6 @@ export function SearchBar() {
         }
     }, [searchTerm, selectedTags]);
 
-    // Search effect
     useEffect(() => {
         let mounted = true;
 
@@ -79,21 +71,19 @@ export function SearchBar() {
             );
 
             if (!hasSearchCriteria) {
+                console.log('No search criteria, clearing results');
                 setMentors([]);
-                setTotalMentors(0);
-                setHasMore(false);
                 return;
             }
 
             try {
-                setLoading(true);
-                setError(null);
-
                 const searchFilters: MentorFilters = {
                     keyword: debouncedSearch.startsWith('#') ? undefined : debouncedSearch || undefined,
                     research_interests: selectedTags.length > 0 ? selectedTags : undefined,
                     ...locationFilter
                 };
+
+                console.log('Searching with filters:', searchFilters);
 
                 const result = await listMentors({
                     ...searchFilters,
@@ -101,22 +91,30 @@ export function SearchBar() {
                     page_size: PAGE_SIZE
                 });
 
+                console.log('API Response:', {
+                    total: result.total,
+                    items: result.items.map(m => ({
+                        id: m.id,
+                        name: m.full_name,
+                        location: `${m.city}, ${m.country}`,
+                        coordinates: [m.latitude, m.longitude]
+                    }))
+                });
+
                 if (mounted) {
-                    setMentors(prevMentors => 
-                        page === 1 ? result.items : [...prevMentors, ...result.items]
-                    );
-                    setTotalMentors(result.total);
-                    setHasMore(result.total > page * PAGE_SIZE);
+                    const convertedMentors = result.items.map(convertToMentor);
+                    console.log('Converted mentors for globe:', convertedMentors.map(m => ({
+                        id: m.id,
+                        name: m.full_name,
+                        location: `${m.city}, ${m.country}`,
+                        coordinates: [m.latitude, m.longitude]
+                    })));
+                    setMentors(convertedMentors);
                 }
             } catch (error) {
                 console.error('Search failed:', error);
                 if (mounted) {
-                    setError(error instanceof Error ? error.message : 'Failed to search mentors');
                     setMentors([]);
-                }
-            } finally {
-                if (mounted) {
-                    setLoading(false);
                 }
             }
         };
@@ -126,7 +124,7 @@ export function SearchBar() {
         return () => {
             mounted = false;
         };
-    }, [debouncedSearch, selectedTags, locationFilter, page, PAGE_SIZE]);
+    }, [debouncedSearch, selectedTags, locationFilter, page, PAGE_SIZE, setMentors]);
 
     const addTag = (tag: string) => {
         if (!selectedTags.includes(tag)) {
@@ -154,174 +152,83 @@ export function SearchBar() {
         });
     };
 
-    const loadMore = () => {
-        if (!loading && hasMore) {
-            setPage(prev => prev + 1);
-        }
-    };
-
     return (
         <div className="relative w-full">
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-full justify-start text-left font-normal"
-                    >
-                        <Search className="mr-2 h-4 w-4" />
-                        <div className="flex gap-2 items-center overflow-hidden flex-1">
-                            <span className="text-muted-foreground">
-                                {(selectedTags.length > 0 || Object.values(locationFilter).some(Boolean)) ? (
-                                    <>
-                                        Filters: {selectedTags.length + Object.values(locationFilter).filter(Boolean).length} active
-                                    </>
-                                ) : (
-                                    "Search mentors..."
-                                )}
-                            </span>
-                        </div>
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                    <Command shouldFilter={false}>
-                        <CommandInput
-                            placeholder={selectedTags.length > 0 ? "Filter results..." : "Search mentors..."}
-                            value={searchTerm}
-                            onValueChange={setSearchTerm}
-                        />
-                        <CommandList>
-                            <CommandEmpty>No results found.</CommandEmpty>
-                            {(selectedTags.length > 0 || Object.values(locationFilter).some(Boolean)) && (
-                                <>
-                                    <CommandGroup heading="Active Filters">
-                                        <div className="flex flex-wrap gap-1 p-2">
-                                            {selectedTags.map(tag => (
-                                                <Badge
-                                                    key={tag}
-                                                    variant="secondary"
-                                                    className="flex items-center gap-1 pr-1 hover:bg-secondary/80"
-                                                >
-                                                    <Tag className="h-3 w-3" />
-                                                    {tag}
-                                                    <X
-                                                        className="h-3 w-3 cursor-pointer hover:text-destructive"
-                                                        onClick={(e: MouseEvent) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            removeTag(tag);
-                                                        }}
-                                                    />
-                                                </Badge>
-                                            ))}
-                                            {Object.entries(locationFilter).map(([key, value]) => (
-                                                value && (
-                                                    <Badge
-                                                        key={key}
-                                                        variant="outline"
-                                                        className="flex items-center gap-1 pr-1 hover:bg-secondary/80"
-                                                    >
-                                                        <Globe className="h-3 w-3" />
-                                                        {value}
-                                                        <X
-                                                            className="h-3 w-3 cursor-pointer hover:text-destructive"
-                                                            onClick={(e: MouseEvent) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                updateLocationFilter(key as keyof LocationFilter, undefined);
-                                                            }}
-                                                        />
-                                                    </Badge>
-                                                )
-                                            ))}
-                                        </div>
-                                    </CommandGroup>
-                                    <CommandSeparator />
-                                </>
-                            )}
-                            {searchTerm.startsWith('#') && tagSuggestions.length > 0 && (
-                                <CommandGroup heading="Research Interests">
-                                    {tagSuggestions.map(tag => (
-                                        <CommandItem
+            <Command className="rounded-full border bg-white/80 backdrop-blur-sm shadow-[0_8px_16px_rgb(0_0_0_/_0.08)] overflow-visible">
+                <div className="w-full px-4 py-2">
+                    <CommandInput
+                        placeholder="Search mentors.."
+                        value={searchTerm}
+                        onValueChange={setSearchTerm}
+                        className="w-full placeholder:text-muted-foreground/60 text-base border-none focus:border-none focus:ring-0"
+                    />
+                </div>
+                <CommandList className="max-h-[300px] overflow-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+                    {(selectedTags.length > 0 || Object.values(locationFilter).some(Boolean)) && (
+                        <>
+                            <CommandGroup>
+                                <div className="flex flex-wrap gap-1.5 p-3">
+                                    {selectedTags.map(tag => (
+                                        <Badge
                                             key={tag}
-                                            onSelect={() => addTag(tag)}
-                                            className="flex items-center gap-2"
+                                            variant="secondary"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
                                         >
-                                            <Tag className="h-4 w-4" />
+                                            <Tag className="h-3.5 w-3.5" />
                                             {tag}
-                                        </CommandItem>
+                                            <X
+                                                className="h-3.5 w-3.5 cursor-pointer hover:text-destructive transition-colors"
+                                                onClick={(e: MouseEvent) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    removeTag(tag);
+                                                }}
+                                            />
+                                        </Badge>
                                     ))}
-                                </CommandGroup>
-                            )}
-                            {loading && page === 1 ? (
-                                <CommandGroup>
-                                    <CommandItem>Loading...</CommandItem>
-                                </CommandGroup>
-                            ) : error ? (
-                                <CommandGroup>
-                                    <CommandItem className="text-destructive">{error}</CommandItem>
-                                </CommandGroup>
-                            ) : mentors.length > 0 ? (
-                                <CommandGroup heading={`Found ${totalMentors} mentor(s)`}>
-                                    <ScrollArea className="h-[300px]">
-                                        {mentors.map(mentor => (
-                                            <CommandItem
-                                                key={mentor.id}
-                                                className="flex flex-col items-start gap-1 p-2"
+                                    {Object.entries(locationFilter).map(([key, value]) => (
+                                        value && (
+                                            <Badge
+                                                key={key}
+                                                variant="outline"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
                                             >
-                                                <div className="font-medium">{mentor.full_name}</div>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <Building className="h-3 w-3" />
-                                                    {mentor.institution}
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <MapPin className="h-3 w-3" />
-                                                    {mentor.city && `${mentor.city}, `}{mentor.country}
-                                                    {mentor.continent && ` (${mentor.continent})`}
-                                                </div>
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {mentor.research_interests.map(interest => (
-                                                        <Badge
-                                                            key={interest}
-                                                            variant="secondary"
-                                                            className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                addTag(interest);
-                                                            }}
-                                                        >
-                                                            {interest}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                                <Separator className="my-2" />
-                                            </CommandItem>
-                                        ))}
-                                        {hasMore && (
-                                            <CommandItem
-                                                onSelect={loadMore}
-                                                className="flex items-center justify-center gap-2 cursor-pointer"
-                                                disabled={loading}
-                                            >
-                                                {loading ? (
-                                                    "Loading more..."
-                                                ) : (
-                                                    <>
-                                                        <ChevronDown className="h-4 w-4" />
-                                                        Load more
-                                                    </>
-                                                )}
-                                            </CommandItem>
-                                        )}
-                                    </ScrollArea>
-                                </CommandGroup>
-                            ) : null}
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
+                                                <Globe className="h-3.5 w-3.5" />
+                                                {value}
+                                                <X
+                                                    className="h-3.5 w-3.5 cursor-pointer hover:text-destructive transition-colors"
+                                                    onClick={(e: MouseEvent) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        updateLocationFilter(key as keyof LocationFilter, undefined);
+                                                    }}
+                                                />
+                                            </Badge>
+                                        )
+                                    ))}
+                                </div>
+                            </CommandGroup>
+                            <CommandSeparator className="bg-border/50" />
+                        </>
+                    )}
+                    {searchTerm.startsWith('#') && tagSuggestions.length > 0 && (
+                        <CommandGroup>
+                            {tagSuggestions.map(tag => (
+                                <div
+                                    key={tag}
+                                    className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors"
+                                    onClick={() => addTag(tag)}
+                                >
+                                    <div className="bg-primary/10 rounded-md p-1.5">
+                                        <Tag className="h-3.5 w-3.5 text-primary" />
+                                    </div>
+                                    <span className="text-sm font-medium">{tag}</span>
+                                </div>
+                            ))}
+                        </CommandGroup>
+                    )}
+                </CommandList>
+            </Command>
         </div>
     );
 } 
