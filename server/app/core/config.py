@@ -50,24 +50,37 @@ class Settings(BaseSettings):
         return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}/{values.get('POSTGRES_DB')}"
     
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: List[str] = []
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+        if isinstance(v, str):
+            try:
+                # Try to parse as JSON array first
+                import json
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # Fall back to comma-separated string
+                return [i.strip() for i in v.split(",")]
+        return v
     
+    # Frontend URLs
+    CLIENT_BASE_URL: str = "" 
+
     # OAuth Settings
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:3000/auth/google/callback"
-    
+    GOOGLE_REDIRECT_URI: str = ""
+
     ORCID_CLIENT_ID: str = ""
     ORCID_CLIENT_SECRET: str = ""
-    ORCID_REDIRECT_URI: str = "http://localhost:3000/auth/orcid/callback"
+    ORCID_REDIRECT_URI: str = ""
+
+    @validator("GOOGLE_REDIRECT_URI", "ORCID_REDIRECT_URI", pre=True)
+    def validate_redirect_uri(cls, v: str, field: str, values: Dict[str, Any]) -> str:
+        if not v and values.get("CLIENT_BASE_URL"):
+            return f"{values['CLIENT_BASE_URL']}/auth/{field.split('_')[0].lower()}/callback"
+        return v
     
     class Config:
         case_sensitive = True
