@@ -66,20 +66,21 @@ class Settings(BaseSettings):
     
     # Frontend URLs
     CLIENT_BASE_URL: str = "" 
-
+    
     # OAuth Settings
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
-
+    
     ORCID_CLIENT_ID: str = ""
     ORCID_CLIENT_SECRET: str = ""
     ORCID_REDIRECT_URI: str = ""
 
     @validator("GOOGLE_REDIRECT_URI", "ORCID_REDIRECT_URI", pre=True)
-    def validate_redirect_uri(cls, v: str, field: str, values: Dict[str, Any]) -> str:
+    def validate_redirect_uri(cls, v: str, values: Dict[str, Any]) -> str:
         if not v and values.get("CLIENT_BASE_URL"):
-            return f"{values['CLIENT_BASE_URL']}/auth/{field.split('_')[0].lower()}/callback"
+            provider = values.get("__field_name__", "").split('_')[0].lower()
+            return f"{values.get('CLIENT_BASE_URL')}/auth/{provider}/callback"
         return v
     
     class Config:
