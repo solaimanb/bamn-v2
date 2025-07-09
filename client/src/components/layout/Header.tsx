@@ -23,7 +23,7 @@ export function Header() {
     };
 
     return (
-        <header className="absolute top-0 left-0 right-0 z-50">
+        <header className="absolute top-0 left-0 right-0 z-50 px-4 lg:px-0">
             <div className="container mx-auto flex h-16 items-center justify-between gap-4">
                 <Link href="/" className="flex-shrink-0">
                     <span className="text-xl font-bold">BAMN</span>

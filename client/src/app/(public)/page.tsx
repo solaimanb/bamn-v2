@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useSearchStore } from '@/store/searchStore';
 import { SearchBar } from '@/components/common/SearchBar';
 
-const MentorGlobe = dynamic(() => import('./_components/MentorGlobe'), {
+const MentorGlobeCesium = dynamic(() => import('./_components/MentorGlobeCesium'), {
   ssr: false,
 });
 
@@ -28,7 +28,7 @@ export default function Home() {
 
       {/* Globe container */}
       <div className="absolute inset-0">
-        <MentorGlobe mentors={mentors} onMentorClick={handleMentorClick} />
+        <MentorGlobeCesium mentors={mentors} onMentorClick={handleMentorClick} />
       </div>
 
       <Dialog open={!!selectedMentor} onOpenChange={() => setSelectedMentor(null)}>

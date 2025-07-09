@@ -1,35 +1,37 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/providers/AuthProvider";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { Providers } from '@/providers'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "BAMN",
-  description: "Bangladesh Academic Mentor Network (BAMN)",
-};
+  title: 'BAMN - Be A Mentor Now',
+  description: 'Connect with mentors around the globe',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <AuthProvider>{children}</AuthProvider>
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+        {/* Initialize Cesium configuration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.CESIUM_BASE_URL = '/cesium';
+              window.CESIUM_ION_TOKEN = '${process.env.NEXT_PUBLIC_CESIUM_TOKEN}';
+            `,
+          }}
+        />
+      </head>
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
       </body>
     </html>
-  );
+  )
 }
