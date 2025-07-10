@@ -23,7 +23,12 @@ export async function middleware(request: NextRequest) {
         }
 
         try {
-            await verifyToken(token);
+            const user = await verifyToken(token);
+
+            if (user.role === 'mentor' && request.nextUrl.pathname === '/dashboard') {
+                return NextResponse.redirect(new URL('/dashboard/profile', request.url));
+            }
+
             return NextResponse.next();
         } catch {
             return NextResponse.redirect(new URL('/login', request.url));

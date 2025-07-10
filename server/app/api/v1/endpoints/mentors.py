@@ -171,8 +171,6 @@ async def update_profile(
     for field, value in update_data.model_dump(exclude_unset=True).items():
         setattr(current_mentor, field, value)
     
-    current_mentor.moderation_status = ModerationStatus.PENDING
-    
     db.add(current_mentor)
     await db.commit()
     await db.refresh(current_mentor)

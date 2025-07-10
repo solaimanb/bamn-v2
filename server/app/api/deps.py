@@ -31,7 +31,6 @@ async def get_current_mentor(
 ) -> Mentor:
     """
     Get current authenticated mentor from JWT token.
-    Only approved mentors can access protected endpoints.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -65,12 +64,6 @@ async def get_current_mentor(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Mentor not found"
-        )
-        
-    if mentor.moderation_status != ModerationStatus.APPROVED:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Mentor profile not approved"
         )
         
     return mentor
@@ -128,3 +121,17 @@ async def get_optional_mentor(
         return await get_current_mentor(db, token)
     except HTTPException:
         return None 
+
+async def get_approved_mentor(
+    mentor: Mentor = Depends(get_current_mentor)
+) -> Mentor:
+    """
+    Get current mentor and verify they are approved.
+    Use this for endpoints that require approved status.
+    """
+    if mentor.moderation_status != ModerationStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Mentor profile not approved"
+        )
+    return mentor 

@@ -9,9 +9,7 @@ import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
-  Settings,
   UserCircle,
-  MessageSquare,
   Menu,
   ChevronUp,
   User2,
@@ -50,7 +48,6 @@ import {
 import { User, MentorResponse } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 
-// Memoized navigation components
 const AdminNav = React.memo(() => {
   const pathname = usePathname();
   const { state } = useSidebar();
@@ -110,26 +107,9 @@ const MentorNav = React.memo(() => {
   return (
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Main</SidebarGroupLabel>
+        <SidebarGroupLabel>Navigation</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild isActive={pathname === '/dashboard'}>
-                      <Link href="/dashboard" className="relative group">
-                        <LayoutDashboard className="h-4 w-4" />
-                        <span>Overview</span>
-                        {state === "collapsed" && (
-                          <TooltipContent side="right">Overview</TooltipContent>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
-                </Tooltip>
-              </TooltipProvider>
-            </SidebarMenuItem>
             <SidebarMenuItem>
               <TooltipProvider>
                 <Tooltip>
@@ -140,48 +120,6 @@ const MentorNav = React.memo(() => {
                         <span>My Profile</span>
                         {state === "collapsed" && (
                           <TooltipContent side="right">My Profile</TooltipContent>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
-                </Tooltip>
-              </TooltipProvider>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarGroup>
-        <SidebarGroupLabel>Communication</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/messages'}>
-                      <Link href="/dashboard/messages" className="relative group">
-                        <MessageSquare className="h-4 w-4" />
-                        <span>Messages</span>
-                        {state === "collapsed" && (
-                          <TooltipContent side="right">Messages</TooltipContent>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
-                </Tooltip>
-              </TooltipProvider>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/settings'}>
-                      <Link href="/dashboard/settings" className="relative group">
-                        <Settings className="h-4 w-4" />
-                        <span>Settings</span>
-                        {state === "collapsed" && (
-                          <TooltipContent side="right">Settings</TooltipContent>
                         )}
                       </Link>
                     </SidebarMenuButton>
