@@ -7,15 +7,15 @@ export const API_ROUTES = {
     GOOGLE_LOGIN: '/auth/oauth/google/login',
     ORCID_LOGIN: '/auth/oauth/orcid/login',
   },
-  
+
   // Mentor endpoints
   MENTORS: {
-    LIST: '/search',
-    GLOBE: '/globe',
-    PROFILE: '/me',
-    DETAIL: (id: string) => `/${id}`,
+    LIST: '/mentors/search',
+    GLOBE: '/mentors/globe',
+    PROFILE: '/mentors/me',
+    DETAIL: (id: string) => `/mentors/${id}`,
   },
-  
+
   // Admin endpoints
   ADMIN: {
     LIST_MENTORS: '/admin/mentors',

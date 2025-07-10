@@ -23,6 +23,8 @@ import {
     ScreenSpaceEventHandler,
     HeightReference,
     LabelGraphics,
+    OpenStreetMapImageryProvider,
+    ImageryLayer,
 } from '@cesium/engine';
 import { Viewer } from '@cesium/widgets';
 import { Mentor } from '@/types/mentor';
@@ -354,6 +356,10 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                     requestRenderMode: true,
                     maximumRenderTimeChange: Infinity,
                     targetFrameRate: 60,
+                    terrain: undefined,
+                    baseLayer: new ImageryLayer(new OpenStreetMapImageryProvider({
+                        url: 'https://a.tile.openstreetmap.org/'
+                    }), {}),
                     contextOptions: {
                         webgl: {
                             alpha: true,
