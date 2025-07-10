@@ -8,7 +8,7 @@ from uuid import UUID
 
 from app.core.config import settings
 from app.db.session import AsyncSessionMaker
-from app.models.mentor import Mentor
+from app.models.mentor import Mentor, ModerationStatus
 from app.models.auth import User
 from app.core.security import verify_password
 
@@ -48,20 +48,31 @@ async def get_current_mentor(
         mentor_id: str = payload.get("sub")
         if mentor_id is None:
             raise credentials_exception
+        
+        try:
+            mentor_uuid = UUID(mentor_id)
+        except ValueError:
+            raise credentials_exception
+            
     except JWTError:
         raise credentials_exception
     
-    stmt = select(Mentor).where(Mentor.id == mentor_id)
+    stmt = select(Mentor).where(Mentor.id == mentor_uuid)
     result = await db.execute(stmt)
     mentor = result.scalar_one_or_none()
     
     if not mentor:
-        raise credentials_exception
-    if not mentor.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mentor not found"
+        )
+        
+    if mentor.moderation_status != ModerationStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Mentor profile not approved"
         )
+        
     return mentor
 
 async def verify_admin(

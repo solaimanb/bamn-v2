@@ -249,12 +249,38 @@ class SearchFilters(BaseModel):
 class SearchResponse(BaseModel):
     """Search results with pagination"""
     items: List[MentorResponse]
-    total: int
-    page: int
-    page_size: int
+    total: int = Field(ge=0)
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1)
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            UUID4: lambda v: str(v)
+        }
+        
+    @validator('items')
+    def validate_items(cls, v):
+        """Ensure items is always a list"""
+        if v is None:
+            return []
+        return list(v)
+
+    @validator('total')
+    def validate_total(cls, v):
+        """Ensure total is never negative"""
+        return max(0, v)
+
+    @validator('page')
+    def validate_page(cls, v):
+        """Ensure page is at least 1"""
+        return max(1, v)
+
+    @validator('page_size')
+    def validate_page_size(cls, v):
+        """Ensure page_size is at least 1"""
+        return max(1, v)
 
 class TagSuggestion(BaseModel):
     """Schema for tag auto-suggestions"""

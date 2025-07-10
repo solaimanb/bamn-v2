@@ -87,4 +87,4 @@ class Mentor(Base):
     @property
     def is_approved(self):
         """Helper to check if mentor profile is approved"""
-        return self.moderation_status == ModerationStatus.APPROVED 
+        return self.moderation_status == ModerationStatus.APPROVED

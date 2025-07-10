@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from typing import List, Optional, Any
-from sqlalchemy import or_, and_, func, select
+from sqlalchemy import or_, and_, func, select, cast, ARRAY, String, exists
+from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+import logging
 
 from app.models.mentor import Mentor
 from app.models.enums import ModerationStatus
@@ -16,7 +18,10 @@ from app.schemas.mentor import (
 )
 from app.api import deps
 
-router = APIRouter(tags=["Mentors"])
+# Set up logging
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/mentors", tags=["Mentors"])
 
 @router.get(
     "/search",
@@ -24,7 +29,9 @@ router = APIRouter(tags=["Mentors"])
     summary="Search Mentors",
     description="""
     Advanced search for mentors with multiple filtering options:
-    - Full-text search across names, institutions, and research interests
+    - Full-text search across names, institutions, departments, roles, and research interests
+    - Search in degrees and academic qualifications
+    - Search by email
     - Filter by research interest tags
     - Geographic filtering by continent, country, and city
     - Combined filtering support
@@ -41,58 +48,85 @@ async def search_mentors(
     page_size: int = Query(10, description="Results per page")
 ) -> SearchResponse:
     """Advanced search for mentors with multiple filtering options"""
-    query = select(Mentor).where(Mentor.moderation_status == ModerationStatus.APPROVED)
-    
-    # Full-text search across all relevant fields
-    if keyword:
-        keyword = keyword.strip().lower()
-        query = query.where(
-            or_(
-                func.lower(Mentor.full_name).contains(keyword),
-                func.lower(Mentor.institution).contains(keyword),
-                func.lower(Mentor.department).contains(keyword),
-                func.lower(Mentor.current_role).contains(keyword),
-                func.lower(func.array_to_string(Mentor.degrees, ' ')).contains(keyword),
-                func.lower(func.array_to_string(Mentor.research_interests, ' ')).contains(keyword),
-                func.lower(Mentor.city).contains(keyword),
-                func.lower(Mentor.country).contains(keyword),
-                func.lower(Mentor.continent).contains(keyword)
+    try:
+        logger.info(f"Search request - keyword: {keyword}, interests: {research_interests}, location: {continent}/{country}/{city}")
+        
+        # Start with base query
+        query = select(Mentor).where(Mentor.moderation_status == ModerationStatus.APPROVED)
+        
+        # Full-text search across all relevant fields
+        if keyword:
+            keyword = keyword.strip().lower()
+            logger.debug(f"Applying keyword filter: {keyword}")
+            query = query.where(
+                or_(
+                    func.lower(Mentor.full_name).contains(keyword),
+                    func.lower(Mentor.email).contains(keyword),
+                    func.lower(Mentor.institution).contains(keyword),
+                    func.lower(Mentor.department).contains(keyword),
+                    func.lower(Mentor.current_role).contains(keyword),
+                    func.lower(func.array_to_string(Mentor.research_interests, ' ', '')).contains(keyword),
+                    func.lower(func.array_to_string(Mentor.degrees, ' ', '')).contains(keyword)
+                )
             )
+        
+        # Research interest tags filter
+        if research_interests:
+            interests_lower = [interest.lower() for interest in research_interests]
+            logger.debug(f"Applying research interests filter: {interests_lower}")
+            
+            # Use array_to_string for case-insensitive search with OR logic
+            # This returns mentors who have ANY of the specified interests
+            query = query.where(
+                or_(*[
+                    func.lower(func.array_to_string(Mentor.research_interests, ',', '')).like(f'%{interest.lower()}%')
+                    for interest in research_interests
+                ])
+            )
+        
+        # Geographic filters (case-insensitive)
+        if continent:
+            logger.debug(f"Applying continent filter: {continent}")
+            query = query.where(func.lower(Mentor.continent) == continent.lower())
+        if country:
+            logger.debug(f"Applying country filter: {country}")
+            query = query.where(func.lower(Mentor.country) == country.lower())
+        if city:
+            logger.debug(f"Applying city filter: {city}")
+            query = query.where(func.lower(Mentor.city) == city.lower())
+        
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total = await db.scalar(count_query) or 0
+        logger.debug(f"Total results before pagination: {total}")
+        
+        # Apply pagination
+        query = query.offset((page - 1) * page_size).limit(page_size)
+        
+        # Execute query and get results
+        result = await db.execute(query)
+        mentors = result.scalars().all()
+        
+        # Convert to list and ensure proper serialization
+        mentor_list = list(mentors)
+        logger.info(f"Search completed - found {len(mentor_list)} results (page {page} of {(total + page_size - 1) // page_size})")
+        
+        # Create response with proper typing
+        response = SearchResponse(
+            items=mentor_list,
+            total=total,
+            page=page,
+            page_size=page_size
         )
-    
-    # Research interest tags filter (keep this strict for exact matches)
-    if research_interests:
-        interests = [interest.lower() for interest in research_interests]
-        query = query.where(
-            and_(*[
-                func.lower(func.any(Mentor.research_interests)) == interest
-                for interest in interests
-            ])
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Search error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error performing search: {str(e)}"
         )
-    
-    # Geographic filters
-    if continent:
-        query = query.where(func.lower(Mentor.continent) == continent.lower())
-    if country:
-        query = query.where(func.lower(Mentor.country) == country.lower())
-    if city:
-        query = query.where(func.lower(Mentor.city) == city.lower())
-    
-    # Get total count
-    count_query = select(func.count()).select_from(query.subquery())
-    total = await db.scalar(count_query)
-    
-    # Apply pagination
-    query = query.offset((page - 1) * page_size).limit(page_size)
-    result = await db.execute(query)
-    mentors = result.scalars().all()
-    
-    return SearchResponse(
-        items=mentors,
-        total=total,
-        page=page,
-        page_size=page_size
-    )
 
 @router.get(
     "/tags/suggest",
