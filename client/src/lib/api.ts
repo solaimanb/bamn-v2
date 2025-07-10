@@ -41,7 +41,9 @@ api.interceptors.response.use(
             code: 'UNKNOWN_ERROR',
             response: error.response && {
                 status: error.response.status,
-                data: error.response.data as any
+                data: {
+                    detail: error.response.data?.detail
+                }
             }
         };
 
@@ -53,7 +55,9 @@ api.interceptors.response.use(
                     ? detail.map(e => e.msg).join('. ')
                     : detail as string || 'Validation error occurred';
             } else {
-                apiError.message = error.response.data?.detail as string || 'An unexpected error occurred';
+                apiError.message = typeof error.response.data?.detail === 'string'
+                    ? error.response.data.detail
+                    : 'An unexpected error occurred';
             }
 
             switch (error.response.status) {

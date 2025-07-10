@@ -32,7 +32,7 @@ export default function RegistrationSuccessPage() {
 
                     <CardContent className="space-y-6 pt-4">
                         <p className="text-muted-foreground text-center">
-                            Thank you for joining BAMN as a mentor. We're excited to have you on board!
+                            Thank you for joining BAMN as a mentor. We&apos;re excited to have you on board!
                         </p>
 
                         <div className="space-y-4">
@@ -51,7 +51,7 @@ export default function RegistrationSuccessPage() {
                                 <div>
                                     <h3 className="font-semibold">Next Steps</h3>
                                     <p className="text-sm text-muted-foreground">
-                                        You'll receive an email notification once your account is approved.
+                                        You&apos;ll receive an email notification once your account is approved.
                                         Make sure to check your spam folder.
                                     </p>
                                 </div>

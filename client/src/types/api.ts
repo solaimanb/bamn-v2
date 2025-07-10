@@ -81,7 +81,7 @@ export interface ApiError {
   response?: {
     status: number;
     data?: {
-      detail?: Array<{
+      detail?: string | Array<{
         msg: string;
         loc?: Array<string | number>;
         type?: string;
