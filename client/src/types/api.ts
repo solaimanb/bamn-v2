@@ -78,4 +78,15 @@ export interface ApiError {
   message: string;
   status?: number;
   code?: string;
+  response?: {
+    status: number;
+    data?: {
+      detail?: Array<{
+        msg: string;
+        loc?: Array<string | number>;
+        type?: string;
+      }>;
+      message?: string;
+    };
+  };
 } 

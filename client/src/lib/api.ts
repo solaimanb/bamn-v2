@@ -3,7 +3,11 @@ import { ApiError } from '../types/api';
 import { getStoredToken } from './authApi';
 
 interface ErrorResponse {
-    detail: string;
+    detail: Array<{
+        msg: string;
+        loc: Array<string | number>;
+        type: string;
+    }> | string;
 }
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL;
@@ -35,13 +39,26 @@ api.interceptors.response.use(
         const apiError: ApiError = {
             message: 'An unexpected error occurred',
             code: 'UNKNOWN_ERROR',
+            response: error.response && {
+                status: error.response.status,
+                data: error.response.data as any
+            }
         };
 
         if (error.response) {
-            apiError.message = error.response.data?.detail || 'An unexpected error occurred';
+            // For validation errors (422), preserve the detailed error messages
+            if (error.response.status === 422) {
+                const detail = error.response.data?.detail;
+                apiError.message = Array.isArray(detail)
+                    ? detail.map(e => e.msg).join('. ')
+                    : detail as string || 'Validation error occurred';
+            } else {
+                apiError.message = error.response.data?.detail as string || 'An unexpected error occurred';
+            }
 
             switch (error.response.status) {
                 case 401:
+                    apiError.code = 'UNAUTHORIZED';
                     window.location.href = '/login';
                     break;
                 case 403:
