@@ -1,61 +1,86 @@
-import { useState, useCallback } from 'react';
-import { listAllMentors, approveMentor, rejectMentor } from '@/lib/adminApi';
-import { MentorResponse, ApiError } from '@/types/api';
+import { useState, useCallback, useRef } from 'react'
+import { MentorResponse } from '@/types/api'
+import { listAllMentors } from '@/lib/adminApi'
+import { useAdminStore } from '@/store/adminStore'
+
+interface CacheData {
+  data: MentorResponse[]
+  timestamp: number
+}
 
 export function useMentors() {
-    const [mentors, setMentors] = useState<MentorResponse[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const { pendingMentors: mentors, setPendingMentors } = useAdminStore()
+  const cache = useRef<CacheData | null>(null)
+  const cacheDuration = useRef(5 * 60 * 1000)
 
-    const fetchMentors = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError(null);
-            const allMentors = await listAllMentors();
-            setMentors(allMentors);
-        } catch (err) {
-            const apiError = err as ApiError;
-            console.error('Failed to fetch mentors:', apiError);
-            setError(apiError.message || 'Failed to fetch mentors data');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+  const fetchMentors = useCallback(async (force = false) => {
+    // Return cached data if available and not expired
+    if (!force && cache.current && Date.now() - cache.current.timestamp < cacheDuration.current) {
+      setPendingMentors(cache.current.data)
+      return
+    }
 
-    const handleApprove = async (mentorId: string) => {
-        try {
-            setActionInProgress(mentorId);
-            await approveMentor(mentorId);
-            await fetchMentors();
-        } catch (err) {
-            const apiError = err as ApiError;
-            setError(apiError.message || 'Failed to approve mentor');
-        } finally {
-            setActionInProgress(null);
-        }
-    };
+    setIsLoading(true)
+    setError(null)
+    try {
+      // Fetch all mentors instead of just pending ones
+      const response = await listAllMentors()
+      setPendingMentors(response)
+      cache.current = { data: response, timestamp: Date.now() }
+    } catch (err) {
+      setError(err as Error)
+      // Keep showing old data if available
+      if (cache.current?.data) {
+        setPendingMentors(cache.current.data)
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [setPendingMentors])
 
-    const handleReject = async (mentorId: string) => {
-        try {
-            setActionInProgress(mentorId);
-            await rejectMentor(mentorId);
-            await fetchMentors();
-        } catch (err) {
-            const apiError = err as ApiError;
-            setError(apiError.message || 'Failed to reject mentor');
-        } finally {
-            setActionInProgress(null);
-        }
-    };
+  const updateMentorStatus = useCallback(async (
+    mentorId: string,
+    newStatus: 'approved' | 'rejected',
+    updateFn: () => Promise<void>
+  ) => {
+    // Store current state for rollback
+    const originalMentors = [...mentors] as MentorResponse[]
+    
+    // Optimistically update UI
+    const mentorIndex = mentors.findIndex(m => m.id === mentorId)
+    if (mentorIndex === -1) return
 
-    return {
-        mentors,
-        isLoading,
-        error,
-        actionInProgress,
-        fetchMentors,
-        handleApprove,
-        handleReject,
-    };
+    const updatedMentors = [...mentors] as MentorResponse[]
+    updatedMentors[mentorIndex] = {
+      ...mentors[mentorIndex],
+      moderation_status: newStatus
+    } as MentorResponse
+
+    setPendingMentors(updatedMentors)
+
+    try {
+      await updateFn()
+      // Update cache
+      if (cache.current) {
+        cache.current.data = updatedMentors
+      }
+    } catch (error) {
+      // Rollback on error
+      setPendingMentors(originalMentors)
+      if (cache.current) {
+        cache.current.data = originalMentors
+      }
+      throw error
+    }
+  }, [mentors, setPendingMentors])
+
+  return {
+    mentors: mentors as MentorResponse[],
+    isLoading,
+    error,
+    fetchMentors,
+    updateMentorStatus
+  }
 }

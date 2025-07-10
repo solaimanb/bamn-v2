@@ -1,85 +1,267 @@
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { usePathname } from 'next/navigation';
 import { getUser } from '@/lib/auth';
+import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  UserCircle,
+  MessageSquare,
+  Menu,
+  ChevronUp,
+  User2,
+} from 'lucide-react';
 
-function AdminNav() {
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  useSidebar
+} from "@/components/ui/sidebar";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+import { User, MentorResponse } from "@/types/api";
+import { Badge } from "@/components/ui/badge";
+
+// Memoized navigation components
+const AdminNav = React.memo(() => {
+  const pathname = usePathname();
+  const { state } = useSidebar();
+
   return (
-    <nav className="flex flex-col">
-      <Link href="/dashboard" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          Overview
-        </Button>
-      </Link>
-      <Link href="/dashboard/mentors" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          Mentors
-        </Button>
-      </Link>
-      <Link href="/dashboard/pending" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          Pending Approvals
-        </Button>
-      </Link>
-      <Link href="/dashboard/settings" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          Settings
-        </Button>
-      </Link>
-    </nav>
+    <SidebarContent>
+      <SidebarGroup>
+        <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard'}>
+                      <Link href="/dashboard" className="relative group">
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Overview</span>
+                        {state === "collapsed" && (
+                          <TooltipContent side="right">Overview</TooltipContent>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                </Tooltip>
+              </TooltipProvider>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/mentors'}>
+                      <Link href="/dashboard/mentors" className="relative group">
+                        <Users className="h-4 w-4" />
+                        <span>Mentors</span>
+                        {state === "collapsed" && (
+                          <TooltipContent side="right">Mentors</TooltipContent>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                </Tooltip>
+              </TooltipProvider>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
   );
-}
+});
+AdminNav.displayName = 'AdminNav';
 
-function MentorNav() {
+const MentorNav = React.memo(() => {
+  const pathname = usePathname();
+  const { state } = useSidebar();
+
   return (
-    <nav className="flex flex-col">
-      <Link href="/dashboard" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          Overview
-        </Button>
-      </Link>
-      <Link href="/dashboard/profile" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          My Profile
-        </Button>
-      </Link>
-      <Link href="/dashboard/messages" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          Messages
-        </Button>
-      </Link>
-      <Link href="/dashboard/settings" className="block">
-        <Button
-          variant="ghost"
-          className="w-full justify-start rounded-none"
-        >
-          Settings
-        </Button>
-      </Link>
-    </nav>
+    <SidebarContent>
+      <SidebarGroup>
+        <SidebarGroupLabel>Main</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard'}>
+                      <Link href="/dashboard" className="relative group">
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Overview</span>
+                        {state === "collapsed" && (
+                          <TooltipContent side="right">Overview</TooltipContent>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                </Tooltip>
+              </TooltipProvider>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/profile'}>
+                      <Link href="/dashboard/profile" className="relative group">
+                        <UserCircle className="h-4 w-4" />
+                        <span>My Profile</span>
+                        {state === "collapsed" && (
+                          <TooltipContent side="right">My Profile</TooltipContent>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                </Tooltip>
+              </TooltipProvider>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Communication</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/messages'}>
+                      <Link href="/dashboard/messages" className="relative group">
+                        <MessageSquare className="h-4 w-4" />
+                        <span>Messages</span>
+                        {state === "collapsed" && (
+                          <TooltipContent side="right">Messages</TooltipContent>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                </Tooltip>
+              </TooltipProvider>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/settings'}>
+                      <Link href="/dashboard/settings" className="relative group">
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                        {state === "collapsed" && (
+                          <TooltipContent side="right">Settings</TooltipContent>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                </Tooltip>
+              </TooltipProvider>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
+  );
+});
+MentorNav.displayName = 'MentorNav';
+
+function DashboardContent({ user, children }: { user: User | MentorResponse, children: React.ReactNode }) {
+  const { state } = useSidebar();
+  const { logout } = useAuthStore();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
+  return (
+    <div className="flex min-h-screen max-h-screen overflow-hidden w-full">
+      <Sidebar collapsible="icon" className="min-h-screen border-r">
+        <SidebarHeader>
+          <div className="py-2">
+            <Link href="/">
+              {state === "expanded" ? (
+                <div className='px-3 flex items-center gap-2'>
+                  <h3 className="font-bold text-xl">BAMN</h3>
+                  <Badge variant="default" className="font-normal">
+                    {user.role === 'admin' ? 'Admin Panel' : 'Dashboard'}
+                  </Badge>
+                </div>
+              ) : (
+                <div className="flex w-8 h-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <span className="font-black text-base">B</span>
+                </div>
+              )}
+            </Link>
+          </div>
+        </SidebarHeader>
+        {user.role === 'admin' ? <AdminNav /> : <MentorNav />}
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton>
+                    <User2 className="h-4 w-4" />
+                    <span>{user.email}</span>
+                    <ChevronUp className="ml-auto h-4 w-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+
+      <main className="flex-1 w-full">
+        <div className="flex items-center px-4 h-14">
+          <SidebarTrigger className="h-9 w-9">
+            <Menu size={20} />
+          </SidebarTrigger>
+        </div>
+        <div className="px-6 pb-6 w-full h-[calc(100vh-3.5rem)] overflow-hidden">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 }
 
@@ -89,41 +271,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between items-center">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold">
-                {user.role === 'admin' ? 'BAMN Admin' : 'BAMN Dashboard'}
-              </h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">
-                {user.full_name}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8">
-          {/* Sidebar */}
-          <aside className="w-64">
-            <Card className="p-0">
-              {user.role === 'admin' ? <AdminNav /> : <MentorNav />}
-            </Card>
-          </aside>
-
-          {/* Main Content */}
-          <main className="flex-1">
-            <Card>
-              {children}
-            </Card>
-          </main>
-        </div>
-      </div>
-    </div>
+    <SidebarProvider>
+      <DashboardContent user={user}>
+        {children}
+      </DashboardContent>
+    </SidebarProvider>
   );
 } 

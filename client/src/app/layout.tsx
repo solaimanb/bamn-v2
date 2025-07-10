@@ -1,13 +1,13 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
+import { Inter } from 'next/font/google'
 import { Providers } from '@/providers'
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'BAMN - Be A Mentor Now',
-  description: 'Connect with mentors around the globe',
+export const metadata = {
+  title: 'BAMN',
+  description: 'Be A Mentor Now',
 }
 
 export default function RootLayout({
@@ -16,21 +16,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-        {/* Initialize Cesium configuration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.CESIUM_BASE_URL = '/cesium';
-              window.CESIUM_ION_TOKEN = '${process.env.NEXT_PUBLIC_CESIUM_TOKEN}';
-            `,
-          }}
-        />
-      </head>
+    <html lang="en">
+      <head />
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   )

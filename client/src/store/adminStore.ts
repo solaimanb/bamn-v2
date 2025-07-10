@@ -1,25 +1,5 @@
 import { create } from 'zustand';
-
-export type Mentor = {
-  id: string;
-  email: string;
-  full_name: string;
-  profile_picture_url?: string | null;
-  current_role: string;
-  institution: string;
-  department: string;
-  degrees: string[];
-  research_interests: string[];
-  continent: string;
-  country: string;
-  city: string;
-  latitude: number;
-  longitude: number;
-  linkedin_url?: string | null;
-  moderation_status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  updated_at?: string | null;
-};
+import { MentorResponse } from '@/types/api';
 
 export type AuditLogEntry = {
   id: string;
@@ -29,9 +9,9 @@ export type AuditLogEntry = {
 };
 
 interface AdminState {
-  pendingMentors: Mentor[];
+  pendingMentors: MentorResponse[];
   auditLog: AuditLogEntry[];
-  setPendingMentors: (mentors: Mentor[]) => void;
+  setPendingMentors: (mentors: MentorResponse[]) => void;
   setAuditLog: (log: AuditLogEntry[]) => void;
 }
 
