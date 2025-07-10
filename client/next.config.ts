@@ -69,7 +69,22 @@ const nextConfig: NextConfig = {
   headers: async () => {
     return [
       {
-        source: '/(.*)',
+        // Relaxed security for pages that need to load external resources
+        source: '/mentor-registration',
+        headers: [
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'credentialless',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin',
+          },
+        ],
+      },
+      {
+        // Keep strict security for other routes
+        source: '/((?!mentor-registration).*)',
         headers: [
           {
             key: 'Cross-Origin-Opener-Policy',
