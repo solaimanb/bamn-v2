@@ -222,42 +222,46 @@ export function LoginForm() {
                         </form>
                     </Form>
 
-                    {/* Divider */}
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <Separator className="w-full bg-slate-200" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-white px-2 text-slate-500 font-medium">Or continue with</span>
-                        </div>
-                    </div>
-
                     {/* Google Login */}
-                    <div className="flex justify-center">
-                        {isGoogleLoading ? (
-                            <div className="flex items-center justify-center gap-2 h-11 w-full rounded-md border border-slate-200 bg-white">
-                                <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
-                                <span className="text-sm text-slate-600 font-medium">Verifying...</span>
+                    {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+                        <>
+                            {/* Divider */}
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <Separator className="w-full bg-slate-200" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-white px-2 text-slate-500 font-medium">Or continue with</span>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="w-full flex justify-center">
-                                <GoogleLogin
-                                    onSuccess={handleGoogleSuccess}
-                                    onError={handleGoogleError}
-                                    type="standard"
-                                    theme="outline"
-                                    size="large"
-                                    text="signin_with"
-                                    shape="rectangular"
-                                    width={320}
-                                    locale="en"
-                                    useOneTap={false}
-                                    auto_select={false}
-                                    cancel_on_tap_outside={true}
-                                />
+
+                            <div className="flex justify-center">
+                                {isGoogleLoading ? (
+                                    <div className="flex items-center justify-center gap-2 h-11 w-full rounded-md border border-slate-200 bg-white">
+                                        <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
+                                        <span className="text-sm text-slate-600 font-medium">Verifying...</span>
+                                    </div>
+                                ) : (
+                                    <div className="w-full flex justify-center">
+                                        <GoogleLogin
+                                            onSuccess={handleGoogleSuccess}
+                                            onError={handleGoogleError}
+                                            type="standard"
+                                            theme="outline"
+                                            size="large"
+                                            text="signin_with"
+                                            shape="rectangular"
+                                            width={320}
+                                            locale="en"
+                                            useOneTap={false}
+                                            auto_select={false}
+                                            cancel_on_tap_outside={true}
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </>
+                    )}
 
                     {/* Registration Link */}
                     <div className="text-center">

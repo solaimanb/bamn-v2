@@ -5,12 +5,8 @@ import { AuthProvider } from './AuthProvider'
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
-if (!GOOGLE_CLIENT_ID) {
-  console.error('Missing GOOGLE_CLIENT_ID environment variable. Google OAuth will not work.')
-}
-
 export function Providers({ children }: { children: React.ReactNode }) {
-  if (!GOOGLE_CLIENT_ID) {
+  if (!GOOGLE_CLIENT_ID || typeof window === 'undefined') {
     return (
       <AuthProvider>
         {children}
@@ -19,9 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <GoogleOAuthProvider
-      clientId={GOOGLE_CLIENT_ID}
-    >
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthProvider>
         {children}
       </AuthProvider>
