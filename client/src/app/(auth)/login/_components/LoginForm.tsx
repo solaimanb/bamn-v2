@@ -103,8 +103,7 @@ export function LoginForm() {
                 apiError.message?.includes("not registered") ||
                 apiError.message?.includes("Google account not registered")
             ) {
-                toast.message("Welcome to BAMN!", {
-                    description: "Please complete your mentor registration to continue.",
+                toast.message("Please complete your mentor registration to continue.", {
                     duration: 5000,
                 })
                 router.replace(`/mentor-registration?provider=google&token=${credentialResponse.credential}`)
@@ -253,6 +252,8 @@ export function LoginForm() {
                                     width={320}
                                     locale="en"
                                     useOneTap={false}
+                                    auto_select={false}
+                                    cancel_on_tap_outside={true}
                                 />
                             </div>
                         )}

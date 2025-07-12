@@ -1,8 +1,18 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { MentorResponse } from "@/types/api";
+import { Mentor } from "@/types/mentor";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
+}
+
+export function convertToMentor(response: MentorResponse): Mentor {
+  return {
+    ...response,
+    linkedin_url: response.linkedin_url || null,
+    profile_picture_url: response.profile_picture_url || null,
+  };
 }
 
 interface LocationDetails {

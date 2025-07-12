@@ -171,6 +171,10 @@ const nextConfig: NextConfig = {
         source: '/cesium/:path*',
         destination: '/cesium/:path*',
       },
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://localhost:8000/api/v1/:path*',
+      },
     ];
   },
   // Enable static file serving
@@ -180,6 +184,6 @@ const nextConfig: NextConfig = {
   experimental: {
     memoryBasedWorkersCount: true,
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

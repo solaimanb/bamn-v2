@@ -22,6 +22,11 @@ export function Header() {
         router.push('/');
     };
 
+    const showBecomeMentor = () => {
+        if (!user || loading) return false;
+        return !isMentor() && user.role !== 'admin';
+    };
+
     return (
         <header className="absolute top-0 left-0 right-0 z-50 px-4 lg:px-0">
             <div className="container mx-auto flex h-16 items-center justify-between gap-4">
@@ -30,13 +35,6 @@ export function Header() {
                 </Link>
 
                 <div className="flex items-center gap-4 flex-shrink-0">
-                    {/* {!loading && !user && (
-                        <Link href="/mentor-registration" className="hidden sm:block">
-                            <Button variant="ghost" size="sm">
-                                Become a mentor
-                            </Button>
-                        </Link>
-                    )} */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="icon">
@@ -78,7 +76,7 @@ export function Header() {
                                     </>
                                 ) : (
                                     <>
-                                        {!isMentor() && (
+                                        {showBecomeMentor() && (
                                             <DropdownMenuItem asChild className="flex flex-col items-start rounded-md focus:bg-accent">
                                                 <Link href="/mentor-registration" className="w-full">
                                                     <div className="flex items-start gap-3 p-2">

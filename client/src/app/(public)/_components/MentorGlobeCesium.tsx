@@ -28,20 +28,23 @@ import {
 } from '@cesium/engine';
 import { Viewer } from '@cesium/widgets';
 import { Mentor } from '@/types/mentor';
+import { GlobeVisualization } from '@/types/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 if (typeof window !== 'undefined') {
     Ion.defaultAccessToken = window.CESIUM_ION_TOKEN || process.env.NEXT_PUBLIC_CESIUM_TOKEN || '';
 }
 
+type MentorLocation = Mentor | GlobeVisualization;
+
 interface MentorGlobeCesiumProps {
-    mentors?: Mentor[];
-    onMentorClick?: (mentor: Mentor) => void;
+    mentors?: MentorLocation[];
+    onMentorClick?: (mentor: MentorLocation) => void;
 }
 
 const getOffsetCoordinates = (
-    mentors: Mentor[],
-    currentMentor: Mentor,
+    mentors: MentorLocation[],
+    currentMentor: MentorLocation,
     index: number,
     totalOverlapping: number
 ): { latitude: number; longitude: number } => {
@@ -75,7 +78,7 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
     const [containerReady, setContainerReady] = useState(false);
     const mentorEntities = useRef<EntityCollection | null>(null);
     const hoverStates = useRef<Map<string, boolean>>(new Map());
-    const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+    const [selectedMentor, setSelectedMentor] = useState<MentorLocation | null>(null);
     const lastFrameTime = useRef<number>(0);
     const frameRateLimit = 30;
 
@@ -94,7 +97,7 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
     }), []);
 
     /** Creates a Cesium entity for a mentor with hover and click interactions */
-    const createMentorEntity = useCallback((viewer: Viewer, mentor: Mentor) => {
+    const createMentorEntity = useCallback((viewer: Viewer, mentor: MentorLocation) => {
         if (!mentor.latitude || !mentor.longitude) return null;
 
         // Find all mentors at this location
@@ -135,9 +138,9 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                     const text = [
                         mentor.full_name,
                         '──────────',
-                        mentor.current_role || 'Mentor',
-                        mentor.institution || '',
-                        `${mentor.city}, ${mentor.country}`
+                        'email' in mentor ? mentor.current_role || 'Mentor' : 'Mentor',
+                        'email' in mentor ? mentor.institution || '' : '',
+                        'email' in mentor ? `${mentor.city}, ${mentor.country}` : ''
                     ];
 
                     if (isInCluster) {
@@ -547,48 +550,51 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                 onOpenChange={(open: boolean) => !open && setSelectedMentor(null)}
             >
                 <DialogContent className="max-w-md" aria-describedby="mentor-info">
-                    <DialogHeader>
-                        <DialogTitle>{selectedMentor?.full_name}</DialogTitle>
-                        <p id="mentor-info" className="text-sm text-muted-foreground">
-                            View detailed information about this mentor
-                        </p>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        {selectedMentor?.current_role && (
-                            <div>
-                                <div className="font-medium text-gray-700">Role</div>
-                                <div>{selectedMentor.current_role}</div>
+                    {selectedMentor && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>{selectedMentor.full_name}</DialogTitle>
+                                <p id="mentor-info" className="text-sm text-muted-foreground">
+                                    View detailed information about this mentor
+                                </p>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                {'email' in selectedMentor ? (
+                                    <>
+                                        <div>
+                                            <div className="font-medium text-gray-700">Role</div>
+                                            <div>{selectedMentor.current_role}</div>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-700">Institution</div>
+                                            <div>{selectedMentor.institution}</div>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-700">Department</div>
+                                            <div>{selectedMentor.department}</div>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-700">Location</div>
+                                            <div>{selectedMentor.city}, {selectedMentor.country}</div>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-700">Email</div>
+                                            <div className="text-blue-600">{selectedMentor.email}</div>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-700">Research Interests</div>
+                                            <div>{selectedMentor.research_interests.join(', ')}</div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div>
+                                        <div className="font-medium text-gray-700">Research Interests</div>
+                                        <div>{selectedMentor.research_interests.join(', ')}</div>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        {selectedMentor?.institution && (
-                            <div>
-                                <div className="font-medium text-gray-700">Institution</div>
-                                <div>{selectedMentor.institution}</div>
-                            </div>
-                        )}
-                        {selectedMentor?.department && (
-                            <div>
-                                <div className="font-medium text-gray-700">Department</div>
-                                <div>{selectedMentor.department}</div>
-                            </div>
-                        )}
-                        <div>
-                            <div className="font-medium text-gray-700">Location</div>
-                            <div>{selectedMentor?.city}, {selectedMentor?.country}</div>
-                        </div>
-                        {selectedMentor?.email && (
-                            <div>
-                                <div className="font-medium text-gray-700">Email</div>
-                                <div className="text-blue-600">{selectedMentor.email}</div>
-                            </div>
-                        )}
-                        {selectedMentor?.research_interests && (
-                            <div>
-                                <div className="font-medium text-gray-700">Research Interests</div>
-                                <div>{selectedMentor.research_interests}</div>
-                            </div>
-                        )}
-                    </div>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </>

@@ -7,12 +7,10 @@ export interface PaginationParams {
 // Filter types
 export interface MentorFilters {
   keyword?: string;
+  research_interests?: string[];
   continent?: string;
   country?: string;
   city?: string;
-  research_interests?: string[];
-  page?: number;
-  page_size?: number;
 }
 
 interface BaseUser {
@@ -44,13 +42,26 @@ export interface MentorBase {
 
 export interface MentorResponse extends MentorBase {
   id: string;
-  role: 'mentor';
-  auth_provider: 'email' | 'google' | 'orcid';
-  google_id?: string;
-  orcid_id?: string;
-  moderation_status: 'pending' | 'approved' | 'rejected';
+  full_name: string;
+  email: string;
+  current_role: string;
+  institution: string;
+  department: string;
+  degrees: string[];
+  research_interests: string[];
+  city: string;
+  country: string;
+  continent: string;
+  latitude: number;
+  longitude: number;
+  linkedin_url: string | null;
+  profile_picture_url: string | null;
+  bio: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
+  role: 'mentor';
+  moderation_status: 'pending' | 'approved' | 'rejected';
+  auth_provider: 'email' | 'google' | 'orcid';
 }
 
 export interface GlobeVisualization {
@@ -72,6 +83,7 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   page_size: number;
+  total_pages: number;
 }
 
 export interface ApiError {

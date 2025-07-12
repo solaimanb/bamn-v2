@@ -25,6 +25,8 @@ export const API_ROUTES = {
   },
 } as const;
 
+export const API_BASE_URL = 'http://localhost:8000/api/v1';
+
 export const DEFAULT_PAGE_SIZE = 10;
 
 export const AUTH_STORAGE_KEY = 'token';
