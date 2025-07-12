@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { MentorRegistrationForm } from "./_components/MentorRegistrationForm";
 
 export default function MentorRegistrationPage() {
@@ -11,7 +12,9 @@ export default function MentorRegistrationPage() {
           </p>
         </div>
 
-        <MentorRegistrationForm />
+        <Suspense fallback={<div>Loading...</div>}>
+          <MentorRegistrationForm />
+        </Suspense>
 
         <p className="text-center text-sm text-muted-foreground">
           By registering, you agree to our{" "}

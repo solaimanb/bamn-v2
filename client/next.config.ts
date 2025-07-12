@@ -3,7 +3,7 @@ import path from 'path';
 import webpack from 'webpack';
 
 const nextConfig: NextConfig = {
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // Strip debug pragmas
     config.module.rules.push({
       test: /\.js$/,
@@ -31,13 +31,31 @@ const nextConfig: NextConfig = {
       })
     );
 
-    // Enable Source Maps
+    // Enable Source Maps with better configuration
     config.module.rules.push({
       test: /\.js$/,
       include: /node_modules[\\\/]@cesium/,
-      use: { loader: 'source-map-loader' },
+      use: { 
+        loader: 'source-map-loader',
+        options: {
+          filterSourceMappingUrl: (url: string, resourcePath: string) => {
+            // Exclude source maps for node_modules
+            if (/node_modules/.test(resourcePath)) {
+              return false;
+            }
+            return true;
+          }
+        }
+      },
       enforce: 'pre'
     });
+
+    // Configure WebAssembly
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      layers: true,
+    };
 
     // Cesium module name location
     if (!config.resolve) {
@@ -60,7 +78,7 @@ const nextConfig: NextConfig = {
     if (!config.resolve.modules) {
       config.resolve.modules = [];
     }
-    
+
     config.resolve.modules.push(path.resolve(__dirname, 'node_modules'));
 
     return config;
@@ -69,22 +87,49 @@ const nextConfig: NextConfig = {
   headers: async () => {
     return [
       {
-        // Relaxed security for pages that need to load external resources
-        source: '/mentor-registration',
+        source: '/(login|mentor-registration)',
         headers: [
           {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'credentialless',
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With, Content-Type, Authorization',
           },
           {
             key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
+            value: 'same-origin-allow-popups',
           },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://accounts.google.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.gstatic.com https://*.googleapis.com https://*.googleusercontent.com https://accounts.google.com",
+              "style-src 'self' 'unsafe-inline' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://accounts.google.com",
+              "img-src 'self' data: blob: https: http:",
+              "frame-src 'self' https://*.google.com https://accounts.google.com",
+              "connect-src 'self' https://*.google.com https://accounts.google.com http://localhost:8000 http://192.168.0.106:8000 https://nominatim.openstreetmap.org",
+              "font-src 'self' data: https://*.gstatic.com https://accounts.google.com",
+              "worker-src 'self' blob:",
+              "frame-ancestors 'none'",
+              "object-src 'none'",
+              "base-uri 'self'"
+            ].join('; ')
+          }
         ],
       },
       {
         // Keep strict security for other routes
-        source: '/((?!mentor-registration).*)',
+        source: '/((?!login|mentor-registration).*)',
         headers: [
           {
             key: 'Cross-Origin-Opener-Policy',

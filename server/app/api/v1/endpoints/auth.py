@@ -11,7 +11,7 @@ Registration Flow:
    - Google OAuth login (/oauth/google/login)
    - ORCID OAuth login (/oauth/orcid/login)
 """
-
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Any
@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, verify_password, get_password_hash, validate_password
 from app.core.config import settings
+from app.core.google_oauth import verify_google_token
 from app.schemas.mentor import MentorCreate, OAuthMentorCreate, MentorResponse
 from app.models.mentor import Mentor
 from app.models.auth import User
@@ -31,6 +32,9 @@ router = APIRouter(
     tags=["Authentication"],
     prefix="/auth"
 )
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 @router.post(
     "/login",
@@ -212,29 +216,62 @@ async def google_login(
     db: AsyncSession = Depends(deps.get_db)
 ) -> Any:
     """Login with Google OAuth"""
-    # TODO: Implement Google token verification
-    # For now, just check if mentor exists with given Google ID
-    query = select(Mentor).where(
-        Mentor.auth_provider == AuthProvider.GOOGLE,
-        Mentor.google_id == google_token
-    )
-    result = await db.execute(query)
-    mentor = result.scalar_one_or_none()
-    
-    if not mentor:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Google account not registered"
+    try:
+        # Log the token length for debugging (don't log the actual token)
+        logger.info(f"Received Google token of length: {len(google_token)}")
+        
+        # Verify the Google token
+        try:
+            google_info = verify_google_token(google_token)
+            logger.info(f"Successfully verified Google token for email: {google_info.get('email')}")
+        except Exception as e:
+            logger.error(f"Google token verification failed: {str(e)}")
+            raise
+        
+        # First try to find mentor by Google ID
+        query = select(Mentor).where(
+            Mentor.auth_provider == AuthProvider.GOOGLE,
+            Mentor.google_id == google_info['google_id']
         )
-    
-    if mentor.moderation_status != ModerationStatus.APPROVED:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account not approved. Please wait for administrator verification."
-        )
-    
-    return {
-        "access_token": create_access_token(
+        result = await db.execute(query)
+        mentor = result.scalar_one_or_none()
+        
+        if not mentor:
+            # If not found by Google ID, try to find by email
+            logger.info(f"No mentor found with Google ID, trying email lookup")
+            query = select(Mentor).where(Mentor.email == google_info['email'])
+            result = await db.execute(query)
+            mentor = result.scalar_one_or_none()
+            
+            if mentor:
+                if mentor.auth_provider == AuthProvider.EMAIL:
+                    # Link Google account to existing email account
+                    logger.info(f"Linking Google account to existing email account: {mentor.email}")
+                    mentor.auth_provider = AuthProvider.GOOGLE
+                    mentor.google_id = google_info['google_id']
+                    await db.commit()
+                else:
+                    logger.warning(f"Email already registered with different provider: {mentor.auth_provider}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Email already registered with {mentor.auth_provider.value}"
+                    )
+            else:
+                logger.info("No existing account found for Google login")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Google account not registered"
+                )
+        
+        if mentor.moderation_status != ModerationStatus.APPROVED:
+            logger.warning(f"Unapproved mentor attempted login: {mentor.email}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account not approved. Please wait for administrator verification."
+            )
+        
+        # Create access token
+        access_token = create_access_token(
             subject=str(mentor.id),
             role="mentor",
             user_data={
@@ -260,9 +297,22 @@ async def google_login(
                 "updated_at": mentor.updated_at.isoformat() if mentor.updated_at else None
             },
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        ),
-        "token_type": "bearer"
-    }
+        )
+        
+        logger.info(f"Successfully logged in mentor: {mentor.email}")
+        return {
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Unexpected error in Google login")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server error occurred. Please try again later."
+        )
 
 @router.post(
     "/oauth/orcid/login",

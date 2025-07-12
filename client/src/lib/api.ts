@@ -10,14 +10,14 @@ interface ErrorResponse {
     }> | string;
 }
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL;
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 const api = axios.create({
     baseURL,
     headers: {
         'Content-Type': 'application/json',
     },
-    withCredentials: false,
+    withCredentials: true,  // Changed to true for CORS credentials
 });
 
 api.interceptors.request.use(
@@ -63,7 +63,11 @@ api.interceptors.response.use(
             switch (error.response.status) {
                 case 401:
                     apiError.code = 'UNAUTHORIZED';
-                    window.location.href = '/login';
+                    // Only redirect to login if it's not an OAuth registration case
+                    if (!apiError.message?.includes('not registered') && 
+                        !apiError.message?.includes('Google account not registered')) {
+                        window.location.href = '/login';
+                    }
                     break;
                 case 403:
                     apiError.code = 'FORBIDDEN';

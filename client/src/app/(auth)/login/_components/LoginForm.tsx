@@ -1,143 +1,277 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { login } from '@/lib/authApi';
-import { Card } from '@/components/ui/card';
-import Link from 'next/link';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { ApiError } from '@/types/api';
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import Link from "next/link"
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google"
+import { toast } from "sonner"
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { login, loginWithGoogle } from "@/lib/authApi"
+import type { ApiError } from "@/types/api"
 
 const loginSchema = z.object({
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(1, 'Password is required'),
-});
+    email: z.string().email("Please enter a valid email address"),
+    password: z.string().min(1, "Password is required"),
+})
 
-type LoginData = z.infer<typeof loginSchema>;
+type LoginData = z.infer<typeof loginSchema>
+
+type LoginState = "idle" | "loading" | "pending-approval" | "error"
 
 export function LoginForm() {
-    const [error, setError] = useState<string | null>(null);
-    const [isPendingApproval, setIsPendingApproval] = useState(false);
-    const router = useRouter();
+    const [loginState, setLoginState] = useState<LoginState>("idle")
+    const [error, setError] = useState<string | null>(null)
+    const [showPassword, setShowPassword] = useState(false)
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+
+    const router = useRouter()
 
     const form = useForm<LoginData>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
-            email: '',
-            password: '',
+            email: "",
+            password: "",
         },
-    });
+    })
 
-    async function onSubmit(data: LoginData) {
-        try {
-            setError(null);
-            setIsPendingApproval(false);
-            await login(data.email, data.password);
-            form.reset();
-            router.push('/dashboard');
-        } catch (err) {
-            const apiError = err as ApiError;
-            setError(apiError.message || 'Failed to login');
+    const resetState = () => {
+        setLoginState("idle")
+        setError(null)
+    }
+
+    const handleLoginSuccess = (message: string) => {
+        form.reset()
+        toast.success("Welcome back!", {
+            description: message,
+            duration: 3000,
+        })
+        router.push("/dashboard")
+    }
+
+    const handleLoginError = (err: unknown) => {
+        const apiError = err as ApiError
+
+        if (apiError.message?.includes("not approved")) {
+            setLoginState("pending-approval")
+        } else {
+            setLoginState("error")
+            setError(apiError.message || "Failed to login. Please try again.")
         }
     }
 
+    const onSubmit = async (data: LoginData) => {
+        try {
+            setLoginState("loading")
+            resetState()
+
+            await login(data.email, data.password)
+            handleLoginSuccess("Successfully logged in to your account.")
+        } catch (err) {
+            handleLoginError(err)
+        }
+    }
+
+    const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+        if (!credentialResponse?.credential) {
+            setError("No credentials received from Google")
+            setLoginState("error")
+            return
+        }
+
+        try {
+            setIsGoogleLoading(true)
+            resetState()
+
+            await loginWithGoogle(credentialResponse.credential)
+            handleLoginSuccess("Successfully logged in with Google.")
+        } catch (err) {
+            const apiError = err as ApiError
+
+            if (apiError.message?.includes("not approved")) {
+                setLoginState("pending-approval")
+            } else if (
+                apiError.message?.includes("not registered") ||
+                apiError.message?.includes("Google account not registered")
+            ) {
+                toast.message("Welcome to BAMN!", {
+                    description: "Please complete your mentor registration to continue.",
+                    duration: 5000,
+                })
+                router.replace(`/mentor-registration?provider=google&token=${credentialResponse.credential}`)
+            } else {
+                setLoginState("error")
+                setError(apiError.message || "Failed to login with Google")
+            }
+        } finally {
+            setIsGoogleLoading(false)
+        }
+    }
+
+    const handleGoogleError = () => {
+        setLoginState("error")
+        setError("Failed to initialize Google login. Please try again or use email login.")
+    }
+
+    const isLoading = loginState === "loading" || form.formState.isSubmitting
+
     return (
-        <>
-            <Dialog open={isPendingApproval} onOpenChange={() => setIsPendingApproval(false)}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-yellow-800">Account Pending Approval</DialogTitle>
-                        <DialogDescription className="text-yellow-700">
-                            Your account is currently under review. An administrator will verify your information and approve your account soon.
-                            You will be able to login once your account is approved.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end">
-                        <Button variant="outline" onClick={() => setIsPendingApproval(false)}>
-                            Close
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+            <Card className="w-full max-w-md shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+                <CardHeader className="space-y-1 text-center pb-6">
+                    <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">Welcome back</CardTitle>
+                    <CardDescription className="text-slate-600">Enter your credentials to access your account</CardDescription>
+                </CardHeader>
 
-            <Dialog open={!!error} onOpenChange={() => setError(null)}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-red-800">Login Error</DialogTitle>
-                        <DialogDescription className="text-red-700">
-                            {error}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end">
-                        <Button variant="outline" onClick={() => setError(null)}>
-                            Close
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <Card className="w-full max-w-md p-6 space-y-6">
-                <div className="space-y-2 text-center">
-                    <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-                    <p className="text-sm text-muted-foreground">Enter your credentials to access your account</p>
-                </div>
-
-        <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Enter your email" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
+                <CardContent className="space-y-6">
+                    {/* Status Messages */}
+                    {loginState === "pending-approval" && (
+                        <Alert className="border-amber-200 bg-amber-50">
+                            <CheckCircle2 className="h-4 w-4 text-amber-600" />
+                            <AlertDescription className="text-amber-800">
+                                Your account is pending approval. An administrator will review your information soon.
+                            </AlertDescription>
+                        </Alert>
                     )}
-                />
-                <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                                <Input type="password" placeholder="Enter your password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
+
+                    {loginState === "error" && error && (
+                        <Alert className="border-red-200 bg-red-50">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <AlertDescription className="text-red-800">{error}</AlertDescription>
+                        </Alert>
                     )}
-                />
 
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                            {form.formState.isSubmitting ? 'Signing in...' : 'Sign in'}
-                </Button>
-            </form>
-        </Form>
+                    {/* Login Form */}
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-slate-700 font-medium">Email</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="email"
+                                                placeholder="Enter your email"
+                                                className="h-11 border-slate-200 focus:border-slate-400 focus:ring-slate-400"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                <div className="text-center text-sm">
-                    <p className="text-muted-foreground">
-                        Don&apos;t have an account?{' '}
-                        <Link href="/mentor-registration" className="text-primary hover:underline">
-                            Register as Mentor
-                        </Link>
-                    </p>
-                </div>
+                            <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-slate-700 font-medium">Password</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Input
+                                                    type={showPassword ? "text" : "password"}
+                                                    placeholder="Enter your password"
+                                                    className="h-11 border-slate-200 focus:border-slate-400 focus:ring-slate-400 pr-10"
+                                                    {...field}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                >
+                                                    {showPassword ? (
+                                                        <EyeOff className="h-4 w-4 text-slate-400" />
+                                                    ) : (
+                                                        <Eye className="h-4 w-4 text-slate-400" />
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <Button
+                                type="submit"
+                                className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-medium"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    "Sign in"
+                                )}
+                            </Button>
+                        </form>
+                    </Form>
+
+                    {/* Divider */}
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <Separator className="w-full bg-slate-200" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-white px-2 text-slate-500 font-medium">Or continue with</span>
+                        </div>
+                    </div>
+
+                    {/* Google Login */}
+                    <div className="flex justify-center">
+                        {isGoogleLoading ? (
+                            <div className="flex items-center justify-center gap-2 h-11 w-full rounded-md border border-slate-200 bg-white">
+                                <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
+                                <span className="text-sm text-slate-600 font-medium">Verifying...</span>
+                            </div>
+                        ) : (
+                            <div className="w-full flex justify-center">
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={handleGoogleError}
+                                    type="standard"
+                                    theme="outline"
+                                    size="large"
+                                    text="signin_with"
+                                    shape="rectangular"
+                                    width={320}
+                                    locale="en"
+                                    useOneTap={false}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Registration Link */}
+                    <div className="text-center">
+                        <p className="text-sm text-slate-600">
+                            Don't have an account?{" "}
+                            <Link
+                                href="/mentor-registration"
+                                className="font-medium text-slate-900 hover:text-slate-700 underline underline-offset-4"
+                            >
+                                Register as Mentor
+                            </Link>
+                        </p>
+                    </div>
+                </CardContent>
             </Card>
-        </>
-    );
-} 
+        </div>
+    )
+}

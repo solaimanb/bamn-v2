@@ -5,8 +5,8 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,9 +17,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { TagInput } from '@/components/ui/tag-input';
-import { register } from '@/lib/authApi';
+import { register, registerWithOAuth } from '@/lib/authApi';
 import { LocationMap } from './LocationMap';
 import { ApiError } from '@/types/api';
+import { jwtDecode } from 'jwt-decode';
+
+interface GoogleTokenData {
+  email: string;
+  name: string;
+  picture?: string;
+  sub: string;
+}
 
 const mentorRegistrationSchema = z.object({
   email: z.string()
@@ -43,7 +51,9 @@ const mentorRegistrationSchema = z.object({
     .refine(
       password => /[^a-zA-Z0-9]/.test(password),
       'Password must contain at least one special character'
-    ),
+    )
+    .optional()  // Make password optional for OAuth
+    .or(z.literal('')),  // Allow empty string for OAuth
 
   full_name: z.string()
     .min(2, 'Full name must be at least 2 characters')
@@ -122,7 +132,10 @@ type MentorRegistrationData = z.infer<typeof mentorRegistrationSchema>;
 export function MentorRegistrationForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOAuthFlow, setIsOAuthFlow] = useState(false);
+  const [oAuthToken, setOAuthToken] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const form = useForm<MentorRegistrationData>({
     resolver: zodResolver(mentorRegistrationSchema),
@@ -144,6 +157,32 @@ export function MentorRegistrationForm() {
     },
     mode: 'onBlur',
   });
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const provider = searchParams.get('provider');
+    const token = searchParams.get('token');
+
+    if (provider === 'google' && token) {
+      try {
+        console.log('Decoding Google token for registration');
+        const decoded = jwtDecode<GoogleTokenData>(token);
+        console.log('Successfully decoded token for:', decoded.email);
+
+        setIsOAuthFlow(true);
+        setOAuthToken(token);
+
+        // Pre-fill form fields with Google data
+        form.setValue('email', decoded.email);
+        form.setValue('full_name', decoded.name);
+        form.setValue('password', ''); // Clear password field for OAuth
+      } catch (error) {
+        console.error('Failed to decode Google token:', error);
+        setError('Failed to decode Google token. Please try again.');
+        router.replace('/login');
+      }
+    }
+  }, [searchParams, form, router]);
 
   const onSubmit = useCallback(async (data: MentorRegistrationData) => {
     try {
@@ -169,11 +208,30 @@ export function MentorRegistrationForm() {
         linkedin_url: data.linkedin_url?.trim() || '',
       };
 
-      await register(normalizedData);
+      if (isOAuthFlow && oAuthToken) {
+        console.log('Registering with Google OAuth');
+        const decoded = jwtDecode<GoogleTokenData>(oAuthToken);
+        await registerWithOAuth({
+          ...normalizedData,
+          auth_provider: 'google' as const,
+          google_id: decoded.sub
+        });
+        console.log('OAuth registration successful');
+      } else {
+        if (!normalizedData.password) {
+          setError('Password is required for email registration');
+          return;
+        }
+        console.log('Registering with email/password');
+        await register(normalizedData as Required<MentorRegistrationData>);
+        console.log('Email registration successful');
+      }
+
       router.push('/registration-success');
     } catch (err) {
+      console.error('Registration error:', err);
       const apiError = err as ApiError;
-      
+
       if (apiError.code === 'VALIDATION_ERROR' && apiError.response?.data?.detail) {
         const detail = apiError.response.data.detail;
         if (Array.isArray(detail)) {
@@ -193,16 +251,10 @@ export function MentorRegistrationForm() {
       } else {
         setError(apiError.message || 'Failed to register. Please try again.');
       }
-      
-      console.error('Registration error:', {
-        code: apiError.code,
-        message: apiError.message,
-        details: apiError.response?.data
-      });
     } finally {
       setIsSubmitting(false);
     }
-  }, [router, form]);
+  }, [router, form, isOAuthFlow, oAuthToken]);
 
   const handleLocationSelect = useCallback((details: {
     latitude: number;
@@ -247,39 +299,40 @@ export function MentorRegistrationForm() {
                           placeholder="Enter your email"
                           autoComplete="email"
                           aria-describedby="email-description"
+                          disabled={isOAuthFlow}
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription id="email-description" className="text-xs">
-                        This will be your login email
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel htmlFor="password">Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="Create a password"
-                          autoComplete="new-password"
-                          aria-describedby="password-description"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription id="password-description" className="text-xs">
-                        Must be at least 8 characters with at least one number and one special character
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
+                {!isOAuthFlow && (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="password">Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            autoComplete="new-password"
+                            aria-describedby="password-description"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <FormDescription id="password-description">
+                          Must be at least 8 characters with a number and special character
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="full_name"
