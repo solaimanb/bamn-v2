@@ -117,7 +117,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://accounts.google.com",
               "img-src 'self' data: blob: https: http:",
               "frame-src 'self' https://*.google.com https://accounts.google.com",
-              "connect-src 'self' https://*.google.com https://accounts.google.com http://localhost:8000 http://192.168.0.106:8000 https://nominatim.openstreetmap.org",
+              "connect-src 'self' https://*.google.com https://accounts.google.com https://bamn.onrender.com http://localhost:8000 http://192.168.0.106:8000 https://nominatim.openstreetmap.org",
               "font-src 'self' data: https://*.gstatic.com https://accounts.google.com",
               "worker-src 'self' blob:",
               "frame-ancestors 'none'",
@@ -173,7 +173,9 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/api/v1/:path*',
-        destination: 'http://localhost:8000/api/v1/:path*',
+        destination: process.env.NODE_ENV === 'production' 
+          ? 'https://bamn.onrender.com/api/v1/:path*'
+          : 'http://localhost:8000/api/v1/:path*',
       },
     ];
   },
