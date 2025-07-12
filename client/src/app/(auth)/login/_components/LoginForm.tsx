@@ -6,9 +6,10 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import Link from "next/link"
-import { GoogleLogin, type CredentialResponse } from "@react-oauth/google"
+import { type CredentialResponse } from "@react-oauth/google"
 import { toast } from "sonner"
 import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
+import dynamic from 'next/dynamic'
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +19,11 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { login, loginWithGoogle } from "@/lib/authApi"
 import type { ApiError } from "@/types/api"
+
+const GoogleLoginButton = dynamic(
+    () => import('./GoogleLoginButton').then(mod => mod.default),
+    { ssr: false }
+);
 
 const loginSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
@@ -222,7 +228,6 @@ export function LoginForm() {
                         </form>
                     </Form>
 
-                    {/* Google Login */}
                     {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
                         <>
                             {/* Divider */}
@@ -235,31 +240,12 @@ export function LoginForm() {
                                 </div>
                             </div>
 
-                            <div className="flex justify-center">
-                                {isGoogleLoading ? (
-                                    <div className="flex items-center justify-center gap-2 h-11 w-full rounded-md border border-slate-200 bg-white">
-                                        <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
-                                        <span className="text-sm text-slate-600 font-medium">Verifying...</span>
-                                    </div>
-                                ) : (
-                                    <div className="w-full flex justify-center">
-                                        <GoogleLogin
-                                            onSuccess={handleGoogleSuccess}
-                                            onError={handleGoogleError}
-                                            type="standard"
-                                            theme="outline"
-                                            size="large"
-                                            text="signin_with"
-                                            shape="rectangular"
-                                            width={320}
-                                            locale="en"
-                                            useOneTap={false}
-                                            auto_select={false}
-                                            cancel_on_tap_outside={true}
-                                        />
-                                    </div>
-                                )}
-                            </div>
+                            {/* Google Login */}
+                            <GoogleLoginButton
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                isLoading={isGoogleLoading}
+                            />
                         </>
                     )}
 
