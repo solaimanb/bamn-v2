@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Mentor } from '@/types/mentor';
 import { GlobeVisualization } from '@/types/api';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchStore, SearchParams } from '@/store/searchStore';
 import { SearchBar } from '@/components/common/SearchBar';
 import { FloatingMentorSection } from './_components/FloatingMentorSection';
 import { listMentors, getMentorGlobeData } from '@/lib/mentorApi';
+import MentorDialog from './_components/MentorDialog';
 
 const MentorGlobeCesium = dynamic(() => import('./_components/MentorGlobeCesium'), {
   ssr: false,
@@ -22,80 +21,6 @@ const selectIsLoading = (state: { isLoading: boolean }) => state.isLoading;
 const selectSearchParams = (state: { searchParams: SearchParams }) => state.searchParams;
 const selectSetMentors = (state: { setMentors: (mentors: Mentor[]) => void }) => state.setMentors;
 const selectSetLoading = (state: { setLoading: (isLoading: boolean) => void }) => state.setLoading;
-
-interface MentorDetailProps {
-  mentor: MentorLocation;
-  isLoadingDetails: boolean;
-}
-
-const MentorDetail = ({ mentor, isLoadingDetails }: MentorDetailProps) => {
-  const isMentorFull = 'email' in mentor;
-
-  if (!isMentorFull && isLoadingDetails) {
-    return (
-      <>
-        <DialogTitle className="text-2xl font-semibold">
-          {mentor.full_name}
-        </DialogTitle>
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Research Interests</p>
-            <p>{mentor.research_interests.join(', ')}</p>
-          </div>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index}>
-              <Skeleton className="h-4 w-24 mb-2" />
-              <Skeleton className="h-6 w-full" />
-            </div>
-          ))}
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <DialogTitle className="text-2xl font-semibold">
-        {mentor.full_name}
-      </DialogTitle>
-      <div className="space-y-4">
-        {isMentorFull ? (
-          <>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Role</p>
-              <p>{mentor.current_role}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Institution</p>
-              <p>{mentor.institution}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Department</p>
-              <p>{mentor.department}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Location</p>
-              <p>{mentor.city}, {mentor.country}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Email</p>
-              <p>{mentor.email}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Research Interests</p>
-              <p>{mentor.research_interests.join(', ')}</p>
-            </div>
-          </>
-        ) : (
-          <div>
-            <p className="text-sm font-medium text-gray-500">Research Interests</p>
-            <p>{mentor.research_interests.join(', ')}</p>
-          </div>
-        )}
-      </div>
-    </>
-  );
-};
 
 export default function Home() {
   const [selectedMentor, setSelectedMentor] = useState<MentorLocation | null>(null);
@@ -184,11 +109,6 @@ export default function Home() {
     }
   };
 
-  const handleDialogClose = () => {
-    setSelectedMentor(null);
-    setIsLoadingDetails(false);
-  };
-
   return (
     <div className="min-h-screen relative">
       <div className="absolute top-12 left-1/2 -translate-x-1/2 z-10 w-full max-w-2xl px-4">
@@ -208,16 +128,11 @@ export default function Home() {
         />
       </div>
 
-      <Dialog open={!!selectedMentor} onOpenChange={handleDialogClose}>
-        <DialogContent className="sm:max-w-[425px]">
-          {selectedMentor && (
-            <MentorDetail
-              mentor={selectedMentor}
-              isLoadingDetails={isLoadingDetails}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <MentorDialog
+        selectedMentor={selectedMentor}
+        setSelectedMentor={setSelectedMentor}
+        isLoading={isLoadingDetails}
+      />
     </div>
   );
 }

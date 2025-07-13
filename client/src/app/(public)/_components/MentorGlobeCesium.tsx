@@ -29,7 +29,7 @@ import {
 import { Viewer } from '@cesium/widgets';
 import { Mentor } from '@/types/mentor';
 import { GlobeVisualization } from '@/types/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// import MentorDialog from './MentorDialog';
 
 if (typeof window !== 'undefined') {
     Ion.defaultAccessToken = window.CESIUM_ION_TOKEN || process.env.NEXT_PUBLIC_CESIUM_TOKEN || '';
@@ -534,7 +534,7 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
         <>
             <div
                 ref={cesiumContainer}
-                className="fixed inset-0 w-screen h-screen bg-white"
+                className="fixed inset-0 w-screen h-screen"
                 style={containerStyle}
             >
                 <style jsx global>{`
@@ -545,58 +545,7 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                     }
                 `}</style>
             </div>
-            <Dialog
-                open={!!selectedMentor}
-                onOpenChange={(open: boolean) => !open && setSelectedMentor(null)}
-            >
-                <DialogContent className="max-w-md" aria-describedby="mentor-info">
-                    {selectedMentor && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle>{selectedMentor.full_name}</DialogTitle>
-                                <p id="mentor-info" className="text-sm text-muted-foreground">
-                                    View detailed information about this mentor
-                                </p>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                                {'email' in selectedMentor ? (
-                                    <>
-                                        <div>
-                                            <div className="font-medium text-gray-700">Role</div>
-                                            <div>{selectedMentor.current_role}</div>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-gray-700">Institution</div>
-                                            <div>{selectedMentor.institution}</div>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-gray-700">Department</div>
-                                            <div>{selectedMentor.department}</div>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-gray-700">Location</div>
-                                            <div>{selectedMentor.city}, {selectedMentor.country}</div>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-gray-700">Email</div>
-                                            <div className="text-blue-600">{selectedMentor.email}</div>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-gray-700">Research Interests</div>
-                                            <div>{selectedMentor.research_interests.join(', ')}</div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div>
-                                        <div className="font-medium text-gray-700">Research Interests</div>
-                                        <div>{selectedMentor.research_interests.join(', ')}</div>
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
+            {/* <MentorDialog selectedMentor={selectedMentor} setSelectedMentor={setSelectedMentor} /> */}
         </>
     );
 } 
