@@ -1,197 +1,140 @@
-'use client';
+"use client"
 
-import { memo } from 'react';
-import { MapPin, Mail, Building2, GraduationCap, Globe, Calendar, MoveLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Mentor } from '@/types/mentor';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
-import { format } from 'date-fns';
+import { memo } from "react"
+import { Mail, MapPin } from "lucide-react"
+import type { Mentor } from "@/types/mentor"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { ProfileMap } from "./ProfileMap"
 
 interface MentorProfileProps {
-    mentor: Mentor;
+    mentor: Mentor
 }
 
 export const MentorProfile = memo(function MentorProfile({ mentor }: MentorProfileProps) {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-
-    const handleBackClick = () => {
-        const params = new URLSearchParams(searchParams?.toString() || '');
-        const queryString = params.toString();
-        if (queryString) {
-            router.push(`/mentors?${queryString}`);
-        } else {
-            router.back();
-        }
-    };
-
-    const formatDate = (dateString: string) => {
-        try {
-            return format(new Date(dateString), 'MMM d, yyyy');
-        } catch {
-            return dateString;
-        }
-    };
+    const initials = mentor.full_name
+        .split(" ")
+        .map((name) => name[0])
+        .join("")
+        .toUpperCase()
 
     return (
-        <div className="container mx-auto max-w-5xl py-20">
-            <div>
-                <div className="mb-8">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight mb-2">{mentor.full_name}</h1>
-                            <p className="text-xl text-muted-foreground">{mentor.current_role}</p>
+        <div className="pt-20">
+            <div className="max-w-3xl mx-auto px-6 py-8">
+                <div className="flex items-start gap-4 mb-8">
+                    <Avatar size={100} className="h-16 w-16">
+                        <AvatarImage src={mentor?.profile_picture_url || "/profile.png"} alt={mentor.full_name} />
+                        <AvatarFallback className="bg-blue-500 text-sm font-black">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                        <h1 className="text-2xl font-bold mb-1">{mentor.full_name}</h1>
+                        <p className="text-lg mb-1">{mentor.current_role}</p>
+                        <p className="text-gray-400 text-sm">{mentor.institution}</p>
+                        <div className="flex items-center gap-2 text-gray-400 text-sm mt-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{mentor.city}, {mentor.country}</span>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleBackClick}
-                            className="text-muted-foreground hover:text-foreground"
-                        >
-                            <MoveLeft size={20} className="mr-2" />
-                            Back to Mentors
-                        </Button>
                     </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
+                {/* About Section */}
+                <div className="mb-8">
+                    <h2 className="text-lg font-semibold mb-3">About</h2>
+                    <div className="border-l-2 pl-4">
+                        <p className="text-sm leading-relaxed">
+                            Specializing in {mentor.research_interests.join(", ").toLowerCase()} with focus on advanced research and
+                            development in {mentor.department.toLowerCase()}.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Research Areas */}
+                {/* <div className="mb-8">
+                    <h2 className="text-lg font-semibold mb-3">Research Areas</h2>
+                    <div className="border-l-2 pl-4">
+                        <div className="flex flex-wrap gap-2">
+                            {mentor.research_interests.map((interest) => (
+                                <Badge key={interest} className="bg-blue-600 hover:bg-blue-700 border-0 px-3 py-1">
+                                    {interest}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+                </div> */}
+
+                {/* Description */}
+                <div className="mb-8">
+                    <h2 className="text-lg font-semibold mb-3">Description</h2>
+                    <div className="border-l-2 pl-4 space-y-4">
+                        <p className="text-sm leading-relaxed">
+                            Specializing in {mentor.research_interests.join(", ").toLowerCase()} with extensive experience in{" "}
+                            {mentor.department.toLowerCase()}.
+                        </p>
+                        <p className="text-sm leading-relaxed">
+                            Their research focuses on advanced topics in {mentor.department} with applications in both academic and
+                            industry settings. They have published numerous papers in reputable journals and are actively involved in
+                            mentoring students from {mentor.country} and contributing to global research collaborations.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Research Keywords and Location Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     <div className="space-y-6">
-                        {/* Location Card */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="font-semibold mb-4">Location</h2>
-                                <div className="space-y-3">
-                                    <div className="flex items-center text-sm">
-                                        <MapPin className="h-4 w-4 mr-3 text-muted-foreground" />
-                                        <span>{mentor.city}, {mentor.country}</span>
-                                    </div>
-                                    <div className="flex items-center text-sm">
-                                        <Globe className="h-4 w-4 mr-3 text-muted-foreground" />
-                                        <span>{mentor.continent}</span>
-                                    </div>
-                                    {mentor.latitude && mentor.longitude && (
-                                        <div className="text-sm text-muted-foreground mt-2">
-                                            Coordinates: {mentor.latitude}, {mentor.longitude}
-                                        </div>
-                                    )}
+                        <div>
+                            <h2 className="text-lg font-semibold mb-3">Research Keywords</h2>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    mentor.country.toLowerCase(),
+                                    "academic",
+                                    "research",
+                                    "mentor",
+                                    mentor.department.toLowerCase().replace(/\s+/g, " "),
+                                    ...mentor.research_interests.map((i) => i.toLowerCase().replace(/\s+/g, " ")),
+                                ].map((keyword, index) => (
+                                    <Badge
+                                        key={`${keyword}-${index}`}
+                                        variant="outline"
+                                        className="text-xs px-2 py-1"
+                                    >
+                                        {keyword}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold mb-3">Contact Information</h2>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3 text-blue-400 hover:text-blue-300 transition-colors">
+                                    <Mail className="w-4 h-4" />
+                                    <a href={`mailto:${mentor.email}`} className="text-sm">
+                                        {mentor.email}
+                                    </a>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Institution Card */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="font-semibold mb-4">Academic Information</h2>
-                                <div className="space-y-3">
-                                    <div className="flex items-center text-sm">
-                                        <Building2 className="h-4 w-4 mr-3 text-muted-foreground" />
-                                        <span>{mentor.institution}</span>
-                                    </div>
-                                    {mentor.department && (
-                                        <div className="flex items-center text-sm">
-                                            <GraduationCap className="h-4 w-4 mr-3 text-muted-foreground" />
-                                            <span>{mentor.department}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Research Interests Card */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="font-semibold mb-4">Research Interests</h2>
-                                <div className="flex flex-wrap gap-2">
-                                    {mentor.research_interests.map((interest: string, idx: number) => (
-                                        <Badge
-                                            key={idx}
-                                            variant="secondary"
-                                            className="bg-secondary/30 text-secondary-foreground hover:bg-secondary/40"
-                                        >
-                                            {interest}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Profile Status Card */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="font-semibold mb-4">Profile Information</h2>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex items-center">
-                                        <Calendar className="h-4 w-4 mr-3 text-muted-foreground" />
-                                        <span>Joined {formatDate(mentor.created_at)}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="md:col-span-2 space-y-6">
-                        {/* Degrees Card */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="font-semibold mb-4">Education</h2>
-                                <div className="space-y-3">
-                                    {mentor.degrees.map((degree, index) => (
-                                        <div key={index} className="flex items-start gap-3">
-                                            <GraduationCap className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                            <div>
-                                                <p className="text-sm">{degree}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {mentor.bio && (
-                            <Card>
-                                <CardContent className="p-6">
-                                    <h2 className="font-semibold mb-4">About</h2>
-                                    <div className="prose prose-sm max-w-none">
-                                        <p className="text-muted-foreground whitespace-pre-wrap">{mentor.bio}</p>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-3">Location</h2>
+                        <div className="shadow-lg rounded-lg overflow-hidden border p-1">
+                            <div className="h-52 relative">
+                                {mentor.latitude && mentor.longitude ? (
+                                    <ProfileMap latitude={mentor.latitude} longitude={mentor.longitude} />
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-gray-400">
+                                        <span>Location not available</span>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* Contact Information */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="font-semibold mb-4">Contact Information</h2>
-                                <div className="space-y-3">
-                                    <div className="flex items-center text-sm">
-                                        <Mail className="h-4 w-4 mr-3 text-muted-foreground" />
-                                        <a href={`mailto:${mentor.email}`} className="text-primary hover:underline">
-                                            {mentor.email}
-                                        </a>
-                                    </div>
-                                    {mentor.linkedin_url && (
-                                        <div className="flex items-center text-sm">
-                                            <svg className="h-4 w-4 mr-3 text-muted-foreground" viewBox="0 0 24 24">
-                                                <path fill="currentColor" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-                                            </svg>
-                                            <a
-                                                href={mentor.linkedin_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-primary hover:underline"
-                                            >
-                                                LinkedIn Profile
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                )}
+                            </div>
+                            <div className="p-3 text-center">
+                                <p className="font-medium">{mentor.city}</p>
+                                <p className="text-sm">{mentor.country}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    );
-}); 
+    )
+})

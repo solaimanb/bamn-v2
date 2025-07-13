@@ -21,6 +21,7 @@ const selectIsLoading = (state: { isLoading: boolean }) => state.isLoading;
 const selectSearchParams = (state: { searchParams: SearchParams }) => state.searchParams;
 const selectSetMentors = (state: { setMentors: (mentors: Mentor[]) => void }) => state.setMentors;
 const selectSetLoading = (state: { setLoading: (isLoading: boolean) => void }) => state.setLoading;
+const selectClearSearch = (state: { clearSearch: () => void }) => state.clearSearch;
 
 export default function Home() {
   const [selectedMentor, setSelectedMentor] = useState<MentorLocation | null>(null);
@@ -31,6 +32,14 @@ export default function Home() {
   const searchParams = useSearchStore(selectSearchParams);
   const setMentors = useSearchStore(selectSetMentors);
   const setLoading = useSearchStore(selectSetLoading);
+  const clearSearch = useSearchStore(selectClearSearch);
+
+  useEffect(() => {
+    clearSearch();
+    return () => {
+      setGlobeMentors([]);
+    };
+  }, [clearSearch]);
 
   useEffect(() => {
     const loadGlobeMentors = async () => {

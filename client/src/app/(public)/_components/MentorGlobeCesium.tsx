@@ -11,7 +11,6 @@ import {
     Color,
     Cartesian3,
     Math as CesiumMath,
-    PointGraphics,
     CallbackProperty,
     NearFarScalar,
     EntityCollection,
@@ -25,11 +24,11 @@ import {
     LabelGraphics,
     OpenStreetMapImageryProvider,
     ImageryLayer,
+    BillboardGraphics,
 } from '@cesium/engine';
 import { Viewer } from '@cesium/widgets';
 import { Mentor } from '@/types/mentor';
 import { GlobeVisualization } from '@/types/api';
-// import MentorDialog from './MentorDialog';
 
 if (typeof window !== 'undefined') {
     Ion.defaultAccessToken = window.CESIUM_ION_TOKEN || process.env.NEXT_PUBLIC_CESIUM_TOKEN || '';
@@ -69,6 +68,22 @@ const getOffsetCoordinates = (
     };
 };
 
+const useMentorClusters = (mentors: MentorLocation[]) => {
+    return useMemo(() => {
+        const clusters = new Map<string, MentorLocation[]>();
+
+        mentors.forEach(mentor => {
+            if (!mentor.latitude || !mentor.longitude) return;
+
+            const key = `${mentor.latitude},${mentor.longitude}`;
+            const existing = clusters.get(key) || [];
+            clusters.set(key, [...existing, mentor]);
+        });
+
+        return clusters;
+    }, [mentors]);
+};
+
 export default function MentorGlobeCesium({ mentors = [], onMentorClick }: MentorGlobeCesiumProps) {
     const cesiumContainer = useRef<HTMLDivElement>(null);
     const [viewer, setViewer] = useState<Viewer | null>(null);
@@ -81,6 +96,10 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
     const [selectedMentor, setSelectedMentor] = useState<MentorLocation | null>(null);
     const lastFrameTime = useRef<number>(0);
     const frameRateLimit = 30;
+    const [retryCount, setRetryCount] = useState(0);
+    const maxRetries = 3;
+    const retryDelay = 2000; // 2 seconds
+    const mentorClusters = useMentorClusters(mentors);
 
     const containerStyle = useMemo<React.CSSProperties>(() => ({
         position: 'fixed',
@@ -100,10 +119,9 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
     const createMentorEntity = useCallback((viewer: Viewer, mentor: MentorLocation) => {
         if (!mentor.latitude || !mentor.longitude) return null;
 
-        // Find all mentors at this location
-        const locationMentors = mentors.filter(
-            m => m.latitude === mentor.latitude && m.longitude === mentor.longitude
-        );
+        // Use memoized clusters instead of filtering every time
+        const key = `${mentor.latitude},${mentor.longitude}`;
+        const locationMentors = mentorClusters.get(key) || [];
         const index = locationMentors.findIndex(m => m.id === mentor.id);
         const { latitude, longitude } = getOffsetCoordinates(
             mentors,
@@ -112,20 +130,19 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
             locationMentors.length
         );
 
-        // Adjust point size and color based on clustering
         const isInCluster = locationMentors.length > 1;
-        const pointColor = isInCluster ? Color.ORANGE : Color.RED;
-        const pointSize = isInCluster ? 12 : 10;
 
         return viewer.entities.add({
             position: Cartesian3.fromDegrees(longitude, latitude),
-            point: new PointGraphics({
-                pixelSize: pointSize,
-                color: pointColor.withAlpha(1.0),
-                outlineColor: Color.WHITE,
-                outlineWidth: 2,
-                scaleByDistance: new NearFarScalar(1.5e2, 2, 1.5e7, 0.5),
-                translucencyByDistance: new NearFarScalar(1.5e2, 1.0, 1.5e7, 1.0),
+            billboard: new BillboardGraphics({
+                image: '/gps.png',
+                verticalOrigin: VerticalOrigin.BOTTOM,
+                horizontalOrigin: HorizontalOrigin.CENTER,
+                scale: isInCluster ? 0.2 : 0.3,
+                heightReference: HeightReference.RELATIVE_TO_GROUND,
+                scaleByDistance: new NearFarScalar(1.5e6, 1.0, 3.0e7, 0.1),
+                translucencyByDistance: new NearFarScalar(1.5e6, 1.0, 3.0e7, 1.0),
+                disableDepthTestDistance: 0,
             }),
             id: mentor.id,
             description: undefined,
@@ -151,28 +168,26 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                     return text.filter(Boolean).join('\n');
                 }, false),
                 font: '14px "Inter", system-ui, sans-serif',
-                fillColor: Color.fromCssColorString('#1a1a1a'),
-                outlineColor: Color.TRANSPARENT,
+                fillColor: Color.fromCssColorString('#000000'),
                 outlineWidth: 0,
                 style: 0,
                 showBackground: true,
-                backgroundColor: Color.WHITE,
+                backgroundColor: new Color(1.0, 1.0, 1.0, 1.0),
                 backgroundPadding: new Cartesian2(16, 12),
-                pixelOffset: new Cartesian2(0, -20),
+                pixelOffset: new Cartesian2(0, -40),
                 horizontalOrigin: HorizontalOrigin.CENTER,
                 verticalOrigin: VerticalOrigin.BOTTOM,
                 scale: 0.9,
-                distanceDisplayCondition: new DistanceDisplayCondition(10.0, 2000000),
-                disableDepthTestDistance: 1000000000,
+                distanceDisplayCondition: new DistanceDisplayCondition(2.0e6, 2.0e7),
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
                 show: false,
-                heightReference: HeightReference.CLAMP_TO_GROUND,
+                heightReference: HeightReference.RELATIVE_TO_GROUND,
                 eyeOffset: new Cartesian3(0, 0, -10),
-                translucencyByDistance: new NearFarScalar(1.5e6, 1.0, 1.5e8, 0.5)
+                translucencyByDistance: new NearFarScalar(2.0e6, 1.0, 2.0e7, 0.3)
             }
         });
-    }, [mentors]);
+    }, [mentors, mentorClusters]);
 
-    /** Updates entity hover states using spatial indexing for performance */
     const updateHoverStates = useCallback((
         viewer: Viewer,
         movement: { endPosition: Cartesian2 },
@@ -189,9 +204,14 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
         const pickedPosition = scene.globe.pick(ray, scene);
         if (!pickedPosition) return;
 
+        // Get picked coordinates
         const pickedCartographic = ellipsoid.cartesianToCartographic(pickedPosition);
         const pickedLat = CesiumMath.toDegrees(pickedCartographic.latitude);
         const pickedLon = CesiumMath.toDegrees(pickedCartographic.longitude);
+
+        // Performance optimization: Only process entities within a certain radius
+        const MAX_DISTANCE = 2; // degrees
+        let needsUpdate = false;
 
         entities.values.forEach(entity => {
             if (!entity.position) return;
@@ -203,34 +223,60 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
             const entityLat = CesiumMath.toDegrees(cartographic.latitude);
             const entityLon = CesiumMath.toDegrees(cartographic.longitude);
 
-            const distance = Math.sqrt(
-                Math.pow(entityLat - pickedLat, 2) +
-                Math.pow(entityLon - pickedLon, 2)
-            );
+            // Quick distance check
+            const latDiff = Math.abs(entityLat - pickedLat);
+            const lonDiff = Math.abs(entityLon - pickedLon);
 
-            if (distance > 1) {
-                hoverStates.current.set(entity.id as string, false);
-                if (entity.label instanceof LabelGraphics) {
-                    entity.label.show = new CallbackProperty(() => false, false);
+            // Skip if too far
+            if (latDiff > MAX_DISTANCE || lonDiff > MAX_DISTANCE) {
+                const currentState = hoverStates.current.get(entity.id as string);
+                if (currentState) {
+                    needsUpdate = true;
+                    hoverStates.current.set(entity.id as string, false);
+                    if (entity.label instanceof LabelGraphics) {
+                        entity.label.show = new CallbackProperty(() => false, false);
+                    }
                 }
                 return;
             }
 
+            // Accurate distance check for close entities
+            const distance = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
+            if (distance > 1) {
+                const currentState = hoverStates.current.get(entity.id as string);
+                if (currentState) {
+                    needsUpdate = true;
+                    hoverStates.current.set(entity.id as string, false);
+                    if (entity.label instanceof LabelGraphics) {
+                        entity.label.show = new CallbackProperty(() => false, false);
+                    }
+                }
+                return;
+            }
+
+            // Screen space check for close entities
             const windowCoords = scene.cartesianToCanvasCoordinates(position);
             if (!windowCoords) return;
 
             const dx = movement.endPosition.x - windowCoords.x;
             const dy = movement.endPosition.y - windowCoords.y;
             const screenDistance = Math.sqrt(dx * dx + dy * dy);
-            const isHovered = screenDistance <= 15;
+            const isHovered = screenDistance <= 40;
 
-            hoverStates.current.set(entity.id as string, isHovered);
-            if (entity.label instanceof LabelGraphics) {
-                entity.label.show = new CallbackProperty(() => isHovered, false);
+            const currentState = hoverStates.current.get(entity.id as string);
+            if (currentState !== isHovered) {
+                needsUpdate = true;
+                hoverStates.current.set(entity.id as string, isHovered);
+                if (entity.label instanceof LabelGraphics) {
+                    entity.label.show = new CallbackProperty(() => isHovered, false);
+                }
             }
         });
 
-        scene.requestRender();
+        // Only request render if states actually changed
+        if (needsUpdate) {
+            scene.requestRender();
+        }
     }, []);
 
     const debouncedUpdateHoverStates = useMemo(
@@ -283,16 +329,24 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
 
     /** Updates mentor entities and sets up hover interactions */
     useEffect(() => {
-        if (!viewer || !mentors) return;
+        if (!viewer) return;
 
         if (mentorEntities.current) {
             viewer.entities.removeAll();
-            hoverStates.current.clear();
+            mentorEntities.current = null;
         }
 
-        mentorEntities.current = viewer.entities;
-        mentors.map(mentor => createMentorEntity(viewer, mentor))
-            .filter(Boolean);
+        hoverStates.current.clear();
+
+        mentorEntities.current = new EntityCollection();
+
+        const batchSize = 50;
+        for (let i = 0; i < mentors.length; i += batchSize) {
+            const batch = mentors.slice(i, i + batchSize);
+            batch.forEach(mentor => {
+                createMentorEntity(viewer, mentor);
+            });
+        }
 
         const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((movement: { endPosition: Cartesian2 }) => {
@@ -305,11 +359,46 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
 
         return () => {
             debouncedUpdateHoverStates.cancel();
-            if (viewer && !viewer.isDestroyed()) {
+            if (handler && !viewer.isDestroyed()) {
                 handler.destroy();
             }
         };
+
     }, [viewer, mentors, createMentorEntity, debouncedUpdateHoverStates]);
+
+    useEffect(() => {
+        if (!viewer) return;
+
+        const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+        const currentHoverStates = hoverStates.current;
+
+        handler.setInputAction(
+          debounce((movement: { endPosition: Cartesian2 }) => {
+            if (!mentorEntities.current) return;
+            updateHoverStates(viewer, movement, mentorEntities.current);
+          }, 50),
+          ScreenSpaceEventType.MOUSE_MOVE
+        );
+
+        return () => {
+          handler.destroy();
+          Array.from(currentHoverStates.keys()).forEach(id => {
+            currentHoverStates.set(id, false);
+          });
+        };
+    }, [viewer, updateHoverStates]);
+
+    useEffect(() => {
+        const currentHoverStates = hoverStates.current;
+        return () => {
+            if (viewer) {
+                viewer.entities.removeAll();
+                viewer.destroy();
+            }
+            currentHoverStates.clear();
+            mentorEntities.current = null;
+        };
+    }, [viewer]);
 
     /** Sets up click handlers for mentor selection */
     useEffect(() => {
@@ -333,15 +422,23 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
         let mounted = true;
         let currentViewer: Viewer | null = null;
 
-        const initCesium = async () => {
+        const initCesium = async (retryAttempt = 0) => {
             try {
                 setDebugStatus('Checking WebGL support...');
                 if (!checkWebGLSupport()) {
                     throw new Error('WebGL is not supported or enabled on your browser.');
                 }
 
+                setDebugStatus('Initializing globe...');
                 window.CESIUM_BASE_URL = '/cesium';
-                Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_TOKEN!;
+
+                if (!Ion.defaultAccessToken) {
+                    Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_TOKEN!;
+                }
+
+                if (retryAttempt > 0) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                }
 
                 const viewer = new Viewer(container, {
                     animation: false,
@@ -377,6 +474,11 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
 
                 currentViewer = viewer;
 
+                if (!mounted) {
+                    viewer.destroy();
+                    return;
+                }
+
                 viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
                 viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(ScreenSpaceEventType.LEFT_CLICK);
 
@@ -392,11 +494,6 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                 scene.globe.show = true;
                 scene.globe.enableLighting = false;
                 scene.globe.translucency.enabled = false;
-
-                if (!mounted) {
-                    viewer.destroy();
-                    return;
-                }
 
                 container.style.position = 'fixed';
                 container.style.inset = '0';
@@ -436,7 +533,7 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                 creditContainer.style.display = 'none';
 
                 viewer.camera.setView({
-                    destination: Cartesian3.fromDegrees(90, 23, 20000000),
+                    destination: Cartesian3.fromDegrees(0, 20, 20000000),
                     orientation: {
                         heading: 0.0,
                         pitch: -CesiumMath.PI_OVER_TWO,
@@ -452,11 +549,19 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
 
                 setViewer(viewer);
                 setIsLoading(false);
+                setError(null);
+                setRetryCount(0);
 
             } catch (error) {
                 console.error('Error initializing Cesium:', error);
-                if (mounted) {
-                    setError(error instanceof Error ? error.message : 'Failed to initialize the globe');
+
+                if (mounted && retryAttempt < maxRetries) {
+                    setDebugStatus(`Retrying initialization (Attempt ${retryAttempt + 1}/${maxRetries})...`);
+                    setRetryCount(retryAttempt + 1);
+                    await initCesium(retryAttempt + 1);
+                } else if (mounted) {
+                    const errorMessage = error instanceof Error ? error.message : 'Failed to initialize the globe';
+                    setError(`Failed to load globe: ${errorMessage}. Please try refreshing the page.`);
                     setIsLoading(false);
                 }
             }
@@ -505,7 +610,7 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
             >
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <div className="text-center">
-                        <div className="mb-2">Loading 3D Globe...</div>
+                        <div className="mb-2">Loading 3D Globe{retryCount > 0 ? ` (Attempt ${retryCount}/${maxRetries})` : ''}...</div>
                         <div className="text-sm text-gray-400">{debugStatus}</div>
                     </div>
                 </div>
@@ -515,15 +620,21 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
 
     if (error) {
         return (
-            <div className="fixed inset-0 flex items-center justify-center bg-black/80 text-white p-4">
+            <div className="fixed inset-0 flex items-center justify-center bg-white p-4">
                 <div className="max-w-md text-center">
-                    <h3 className="text-xl font-semibold mb-4">Failed to load 3D Globe</h3>
-                    <p className="text-red-400 mb-4">{error}</p>
+                    <h3 className="text-xl font-semibold mb-4">Globe Loading Error</h3>
+                    <p className="text-red-600 mb-4">{error}</p>
                     <button
-                        onClick={() => window.location.reload()}
+                        onClick={() => {
+                            setError(null);
+                            setIsLoading(true);
+                            setRetryCount(0);
+                            setDebugStatus('Retrying initialization...');
+                            window.location.reload();
+                        }}
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     >
-                        Retry
+                        Retry Loading
                     </button>
                 </div>
             </div>
@@ -545,7 +656,6 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                     }
                 `}</style>
             </div>
-            {/* <MentorDialog selectedMentor={selectedMentor} setSelectedMentor={setSelectedMentor} /> */}
         </>
     );
 } 

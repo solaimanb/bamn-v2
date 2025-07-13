@@ -49,6 +49,11 @@ export const useSearchStore = create<SearchStore>((set) => ({
   }),
   clearSearch: () => set((state) => {
     if (!state.mentors.length && !Object.keys(state.searchParams).length) return state;
-    return { searchParams: {}, mentors: [], shouldRefresh: true };
+    return {
+      searchParams: {},
+      mentors: [],
+      shouldRefresh: true,
+      isLoading: false
+    };
   }),
 })); 
