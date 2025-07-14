@@ -28,6 +28,8 @@ import {
     SceneMode,
     Rectangle,
     Camera,
+    CameraEventType,
+    KeyboardEventModifier,
 } from '@cesium/engine';
 import { Viewer } from '@cesium/widgets';
 import { Mentor } from '@/types/mentor';
@@ -57,7 +59,9 @@ const PERFORMANCE_CONSTANTS = {
     MAX_ZOOM_DISTANCE: 20000000, // 20000km
     CAMERA_BOUNDS: Rectangle.fromDegrees(-180, -85, 180, 85),
     TERRAIN_EXAGGERATION: 1.0,
-    CAMERA_MOVEMENT_SPEED: 0.5,
+    CAMERA_MOVEMENT_SPEED: 1.5, // Increased from 0.5 for smoother movement
+    TOUCH_MOVEMENT_SPEED: 0.5,  // New constant for touch movement
+    INERTIA_ENABLED: true,      // New constant for inertia
 } as const;
 
 const performanceUtils = {
@@ -86,7 +90,7 @@ const performanceUtils = {
         scene.globe.showWaterEffect = false;
         scene.globe.backFaceCulling = true;
         scene.globe.tileCacheSize = isMobile ? 25 : 100;
-        scene.globe.maximumScreenSpaceError = isMobile ? 4 : 2;
+        scene.globe.maximumScreenSpaceError = isMobile ? 3 : 2;
         scene.globe.baseColor = Color.WHITE;
         scene.globe.translucency.enabled = false;
         scene.globe.preloadSiblings = false;
@@ -106,11 +110,45 @@ const performanceUtils = {
         scene.requestRenderMode = true;
         scene.maximumRenderTimeChange = Infinity;
 
-        // Camera constraints
-        scene.screenSpaceCameraController.enableCollisionDetection = true;
-        scene.screenSpaceCameraController.minimumZoomDistance = PERFORMANCE_CONSTANTS.MIN_ZOOM_DISTANCE;
-        scene.screenSpaceCameraController.maximumZoomDistance = PERFORMANCE_CONSTANTS.MAX_ZOOM_DISTANCE;
-        scene.screenSpaceCameraController.enableTilt = false;
+        // Camera constraints and touch optimization
+        const controller = scene.screenSpaceCameraController;
+        controller.enableCollisionDetection = true;
+        controller.minimumZoomDistance = PERFORMANCE_CONSTANTS.MIN_ZOOM_DISTANCE;
+        controller.maximumZoomDistance = PERFORMANCE_CONSTANTS.MAX_ZOOM_DISTANCE;
+        controller.enableTilt = false;
+
+        // Touch-specific optimizations
+        if (isMobile) {
+            // Enable smooth inertia
+            controller.inertiaSpin = 0.9;           // Adjust spin speed
+            controller.inertiaTranslate = 0.9;      // Adjust pan speed
+            controller.inertiaZoom = 0.8;           // Adjust zoom speed
+
+            controller.rotateEventTypes = [
+                CameraEventType.LEFT_DRAG,
+                CameraEventType.PINCH,
+                {
+                    eventType: CameraEventType.PINCH,
+                    modifier: KeyboardEventModifier.SHIFT
+                }
+            ];
+
+            // Adjust movement speeds for touch
+            controller.translateEventTypes = [
+                CameraEventType.LEFT_DRAG,
+                {
+                    eventType: CameraEventType.LEFT_DRAG,
+                    modifier: KeyboardEventModifier.SHIFT
+                }
+            ];
+
+            // Enable core interactions
+            controller.enableInputs = true;
+            controller.enableZoom = true;
+            controller.enableRotate = true;
+            controller.enableTilt = false;
+            controller.enableLook = false;
+        }
     },
 
     setupCamera: (camera: Camera) => {
@@ -522,7 +560,7 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                     scene3DOnly: true,
                     requestRenderMode: true,
                     maximumRenderTimeChange: Infinity,
-                    targetFrameRate: isMobile ? PERFORMANCE_CONSTANTS.FRAME_RATE_LIMIT : 60,
+                    targetFrameRate: isMobile ? 60 : 60,
                     terrain: undefined,
                     baseLayer: new ImageryLayer(
                         performanceUtils.optimizeImageryProvider(isMobile),
@@ -635,9 +673,13 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                 setError(null);
                 setRetryCount(0);
 
-                // Apply optimizations
                 performanceUtils.optimizeScene(viewer.scene, isMobile);
                 performanceUtils.setupCamera(viewer.camera);
+
+                if (isMobile) {
+                    viewer.scene.globe.enableLighting = false;
+                    viewer.resolutionScale = 1.0;
+                }
 
             } catch (error) {
                 console.error('Error initializing Cesium:', error);
