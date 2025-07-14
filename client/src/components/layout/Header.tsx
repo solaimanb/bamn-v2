@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Heart, Menu, LogOut, Sparkles } from 'lucide-react';
+import { Heart, Menu, LogOut } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
