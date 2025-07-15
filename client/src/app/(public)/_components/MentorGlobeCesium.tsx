@@ -80,10 +80,16 @@ const performanceUtils = {
                 powerPreference: 'high-performance',
                 failIfMajorPerformanceCaveat: true,
                 preserveDrawingBuffer: false,
-                premultipliedAlpha: false,
-                desynchronized: true
+                premultipliedAlpha: true,
+                desynchronized: false
             };
-            return canvas.getContext('webgl', contextAttributes) as WebGLRenderingContext;
+            const gl = canvas.getContext('webgl', contextAttributes) as WebGLRenderingContext;
+
+            if (gl) {
+                gl.hint(gl.GENERATE_MIPMAP_HINT, gl.FASTEST);
+            }
+
+            return gl;
         } catch {
             return null;
         }
@@ -296,6 +302,10 @@ export default function MentorGlobeCesium({ mentors = [], onMentorClick }: Mento
                 scaleByDistance: new NearFarScalar(1.5e6, 1.0, 3.0e7, 0.1),
                 translucencyByDistance: new NearFarScalar(1.5e6, 1.0, 3.0e7, 1.0),
                 disableDepthTestDistance: 0,
+                sizeInMeters: false,  // Added to help with texture scaling
+                alignedAxis: Cartesian3.ZERO,  // Added to optimize rendering
+                pixelOffset: new Cartesian2(0, 0),  // Added for better positioning
+                eyeOffset: new Cartesian3(0.0, 0.0, 0.0),  // Added for depth consistency
             }),
             id: mentor.id,
             description: undefined,
