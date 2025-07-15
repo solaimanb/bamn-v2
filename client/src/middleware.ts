@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
     if (request.nextUrl.pathname.startsWith('/login')) {
         if (token) {
             try {
-                const user = await verifyToken(token);
+                await verifyToken(token);
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             } catch {
                 return NextResponse.next();

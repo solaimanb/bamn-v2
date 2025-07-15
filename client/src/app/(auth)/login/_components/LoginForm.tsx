@@ -55,7 +55,7 @@ export function LoginForm() {
         setError(null)
     }
 
-    const handleLoginSuccess = async (message: string, user: User) => {
+    const handleLoginSuccess = async (message: string) => {
         form.reset()
         toast.success("Welcome back!", {
             description: message,
@@ -81,7 +81,7 @@ export function LoginForm() {
             resetState()
 
             const user = await login(data.email, data.password)
-            handleLoginSuccess("Successfully logged in to your account.", user)
+            handleLoginSuccess("Successfully logged in to your account.")
         } catch (err) {
             handleLoginError(err)
         }
@@ -99,7 +99,7 @@ export function LoginForm() {
             resetState()
 
             const user = await loginWithGoogle(credentialResponse.credential)
-            handleLoginSuccess("Successfully logged in with Google.", user)
+            handleLoginSuccess("Successfully logged in with Google.")
         } catch (err) {
             const apiError = err as ApiError
 
