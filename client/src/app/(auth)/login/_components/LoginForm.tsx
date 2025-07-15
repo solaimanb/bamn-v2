@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { login, loginWithGoogle } from "@/lib/authApi"
-import type { ApiError } from "@/types/api"
+import type { ApiError, User } from "@/types/api"
 
 const GoogleLoginButton = dynamic(
     () => import('./GoogleLoginButton').then(mod => mod.default),
@@ -55,7 +55,7 @@ export function LoginForm() {
         setError(null)
     }
 
-    const handleLoginSuccess = (message: string) => {
+    const handleLoginSuccess = async (message: string, user: User) => {
         form.reset()
         toast.success("Welcome back!", {
             description: message,
@@ -80,8 +80,8 @@ export function LoginForm() {
             setLoginState("loading")
             resetState()
 
-            await login(data.email, data.password)
-            handleLoginSuccess("Successfully logged in to your account.")
+            const user = await login(data.email, data.password)
+            handleLoginSuccess("Successfully logged in to your account.", user)
         } catch (err) {
             handleLoginError(err)
         }
@@ -98,8 +98,8 @@ export function LoginForm() {
             setIsGoogleLoading(true)
             resetState()
 
-            await loginWithGoogle(credentialResponse.credential)
-            handleLoginSuccess("Successfully logged in with Google.")
+            const user = await loginWithGoogle(credentialResponse.credential)
+            handleLoginSuccess("Successfully logged in with Google.", user)
         } catch (err) {
             const apiError = err as ApiError
 
