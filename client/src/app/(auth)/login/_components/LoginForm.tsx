@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { login, loginWithGoogle } from "@/lib/authApi"
-import type { ApiError, User } from "@/types/api"
+import type { ApiError } from "@/types/api"
 
 const GoogleLoginButton = dynamic(
     () => import('./GoogleLoginButton').then(mod => mod.default),
@@ -80,7 +80,7 @@ export function LoginForm() {
             setLoginState("loading")
             resetState()
 
-            const user = await login(data.email, data.password)
+            await login(data.email, data.password)
             handleLoginSuccess("Successfully logged in to your account.")
         } catch (err) {
             handleLoginError(err)
@@ -98,7 +98,7 @@ export function LoginForm() {
             setIsGoogleLoading(true)
             resetState()
 
-            const user = await loginWithGoogle(credentialResponse.credential)
+            await loginWithGoogle(credentialResponse.credential)
             handleLoginSuccess("Successfully logged in with Google.")
         } catch (err) {
             const apiError = err as ApiError
