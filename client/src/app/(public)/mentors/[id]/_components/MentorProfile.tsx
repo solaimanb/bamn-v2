@@ -21,17 +21,17 @@ export const MentorProfile = memo(function MentorProfile({ mentor }: MentorProfi
 
     return (
         <div className="pt-16 lg:pt-20 bg-gray-950">
-            <div className="max-w-3xl mx-auto px-6 py-8">
-                <Card className="flex lg:flex-row gap-4 mb-8 borde p-6 shadow-sm">
+            <div className="max-w-3xl mx-auto px-6 py-8 text-background">
+                <Card className="flex lg:flex-row gap-4 mb-8 border bg-transparent p-6 shadow-sm backdrop-blur-sm">
                     <Avatar size={100} className="h-16 w-16">
                         <AvatarImage src={mentor?.profile_picture_url || "/profile.png"} alt={mentor.full_name} />
                         <AvatarFallback className="bg-blue-500 text-sm font-black">{initials}</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
+                    <div className="flex-1 text-background">
                         <h1 className="text-2xl font-bold mb-1">{mentor.full_name}</h1>
                         <p className="text-lg mb-1">{mentor.current_role}</p>
-                        <p className="text-gray-400 text-sm">{mentor.institution}</p>
-                        <div className="flex items-center gap-2 text-gray-400 text-sm mt-1">
+                        <p className="text-muted-foreground text-sm">{mentor.institution}</p>
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
                             <MapPin className="w-4 h-4" />
                             <span>{mentor.city}, {mentor.country}</span>
                         </div>
@@ -96,7 +96,7 @@ export const MentorProfile = memo(function MentorProfile({ mentor }: MentorProfi
                                     <Badge
                                         key={`${keyword}-${index}`}
                                         variant="outline"
-                                        className="text-xs px-2 py-1"
+                                        className="text-xs px-2 py-1 text-background backdrop-blur-sm"
                                     >
                                         {keyword}
                                     </Badge>
