@@ -20,7 +20,7 @@ export const MentorProfile = memo(function MentorProfile({ mentor }: MentorProfi
         .toUpperCase()
 
     return (
-        <div className="pt-16 lg:pt-20">
+        <div className="pt-16 lg:pt-20 bg-gray-950">
             <div className="max-w-3xl mx-auto px-6 py-8">
                 <Card className="flex lg:flex-row gap-4 mb-8 borde p-6 shadow-sm">
                     <Avatar size={100} className="h-16 w-16">

@@ -32,20 +32,20 @@ export function Header() {
             <div className="container mx-auto flex h-16 items-center justify-between gap-4">
                 <Link href="/" className="flex-shrink-0">
                     <div className="flex items-center gap-1">
-                        <span className="text-2xl font-bold tracking-tight">[BAMN]</span>
-                        <span className="text-[0.6rem] uppercase tracking-widest text-muted-foreground">Bangladesh Academic <br /> Mentor Network</span>
+                        <span className="text-background text-2xl font-bold tracking-tight">[BAMN]</span>
+                        <span className="text-[0.6rem] uppercase tracking-widest text-muted font-medium">Bangladesh Academic <br /> Mentor Network</span>
                     </div>
                 </Link>
 
                 <div className="flex items-center gap-4 flex-shrink-0">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon">
+                            <Button variant="ghost" size="icon" className="border-2 border-muted-foreground/40 backdrop-blur-md bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-all duration-300">
                                 <span className="sr-only">Toggle menu</span>
-                                <Menu size={24} />
+                                <Menu size={24} className="text-background" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-72 rounded-2xl">
+                        <DropdownMenuContent align="end" className="w-72 rounded-2xl bg-background/10 backdrop-blur-sm border-2 border-muted-foreground/40">
                             <div className="p-2">
                                 {loading ? (
                                     <div className="p-2 text-sm text-muted-foreground">
@@ -55,9 +55,9 @@ export function Header() {
                                     <>
                                         <DropdownMenuItem asChild className="flex flex-col items-start rounded-md focus:bg-accent">
                                             <Link href="/mentor-registration" className="w-full">
-                                                <div className="flex items-start gap-3 p-2">
+                                                <div className="flex items-start gap-3 p-2 text-background hover:text-foreground transition-all duration-300">
                                                     <div className="rounded-md bg-primary/10 p-2">
-                                                        <Heart className="h-4 w-4 text-primary" />
+                                                        <Heart size={20} />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5 min-h-[2.5rem] justify-center">
                                                         <div className="font-medium text-sm">Become a mentor</div>
@@ -71,7 +71,7 @@ export function Header() {
 
                                         <DropdownMenuSeparator className="my-2" />
 
-                                        <DropdownMenuItem asChild className="rounded-md focus:bg-accent">
+                                        <DropdownMenuItem asChild className="rounded-md focus:bg-accent text-background hover:text-background">
                                             <Link href="/login" className="w-full">
                                                 <div className="p-2 text-sm">Log in or sign up</div>
                                             </Link>

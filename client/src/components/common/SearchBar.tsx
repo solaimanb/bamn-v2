@@ -168,26 +168,26 @@ export const SearchBar = memo(function SearchBar() {
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
             placeholder="Search mentors..."
-            className="w-full h-12 pl-4 pr-12 rounded-full border bg-background shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full h-12 pl-4 pr-12 rounded-full border-2 border-muted-foreground/40 text-background text-sm bg-background/10 backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground placeholder:text-sm"
           />
           <Button
             size="icon"
-            variant="secondary"
-            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full hover:bg-accent"
+            variant="ghost"
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full backdrop-blur-md bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-all duration-300"
             onClick={updateSearchParams}
           >
-            <Search size={32} className="text-muted-foreground" />
+            <Search size={32} className="text-background" />
           </Button>
         </div>
 
         <Popover>
           <PopoverTrigger asChild>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-12 w-12 rounded-full shrink-0"
+              className="h-12 w-12 rounded-full border-2 border-muted-foreground/40 shrink-0 backdrop-blur-md bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-all duration-300"
             >
-              <Filter className="h-4 w-4" />
+              <Filter size={20} className="text-background" />
               {activeFiltersCount > 0 && (
                 <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
                   {activeFiltersCount}

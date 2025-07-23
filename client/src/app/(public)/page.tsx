@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { Mentor } from '@/types/mentor';
 import { GlobeVisualization, MentorResponse } from '@/types/api';
 import { useSearchStore, SearchParams } from '@/store/searchStore';
@@ -9,10 +8,11 @@ import { SearchBar } from '@/components/common/SearchBar';
 import { FloatingMentorSection } from './_components/FloatingMentorSection';
 import { listMentors, getMentorGlobeData } from '@/lib/mentorApi';
 import MentorDialog from './_components/MentorDialog';
+import MentorGlobe from './_components/MentorGlobe';
 
-const MentorGlobeCesium = dynamic(() => import('./_components/MentorGlobeCesium'), {
-  ssr: false,
-});
+// const MentorGlobeCesium = dynamic(() => import('./_components/MentorGlobeCesium'), {
+//   ssr: false,
+// });
 
 type MentorLocation = GlobeVisualization | MentorResponse;
 
@@ -112,8 +112,15 @@ export default function Home() {
         onMentorClick={handleMentorClick}
       />
 
-      <div className="absolute inset-0">
+      {/* <div className="absolute inset-0">
         <MentorGlobeCesium
+          mentors={mentors.length > 0 ? mentors : globeMentors}
+          onMentorClick={handleMentorClick}
+        />
+      </div> */}
+
+      <div className="absolute inset-0">
+        <MentorGlobe
           mentors={mentors.length > 0 ? mentors : globeMentors}
           onMentorClick={handleMentorClick}
         />

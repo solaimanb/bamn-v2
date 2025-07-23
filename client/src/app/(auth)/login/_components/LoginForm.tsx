@@ -130,15 +130,14 @@ export function LoginForm() {
     const isLoading = loginState === "loading" || form.formState.isSubmitting
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-            <Card className="w-full max-w-md shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+            <Card className="w-full max-w-md shadow-lg border-0 bg-gray-900 backdrop-blur-sm text-background">
                 <CardHeader className="space-y-1 text-center pb-6">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">Welcome back</CardTitle>
-                    <CardDescription className="text-slate-600">Enter your credentials to access your account</CardDescription>
+                    <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
+                    <CardDescription className="text-slate-500">Enter your credentials to access your account</CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-                    {/* Status Messages */}
                     {loginState === "pending-approval" && (
                         <Alert className="border-amber-200 bg-amber-50">
                             <CheckCircle2 className="h-4 w-4 text-amber-600" />
@@ -213,7 +212,7 @@ export function LoginForm() {
 
                             <Button
                                 type="submit"
-                                className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-medium"
+                                className="w-full h-11 text-white font-medium bg-gray-600 hover:bg-gray-700 transition-all duration-300"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
@@ -233,10 +232,10 @@ export function LoginForm() {
                             {/* Divider */}
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center">
-                                    <Separator className="w-full bg-slate-200" />
+                                    <Separator className="w-full bg-gray-800" />
                                 </div>
                                 <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-white px-2 text-slate-500 font-medium">Or continue with</span>
+                                    <span className="bg-gray-900 px-2 text-slate-500 font-medium">Or continue with</span>
                                 </div>
                             </div>
 
@@ -251,11 +250,11 @@ export function LoginForm() {
 
                     {/* Registration Link */}
                     <div className="text-center">
-                        <p className="text-sm text-slate-600">
+                        <p className="text-xs text-gray-400">
                             Don&apos;t have an account?{" "}
                             <Link
                                 href="/mentor-registration"
-                                className="font-medium text-slate-900 hover:text-slate-700 underline underline-offset-4"
+                                className="font-medium underline underline-offset-4 hover:text-gray-500 transition-all duration-300"
                             >
                                 Register as Mentor
                             </Link>
