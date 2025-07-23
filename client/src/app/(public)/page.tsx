@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Mentor } from '@/types/mentor';
 import { GlobeVisualization, MentorResponse } from '@/types/api';
 import { useSearchStore, SearchParams } from '@/store/searchStore';
@@ -8,11 +9,10 @@ import { SearchBar } from '@/components/common/SearchBar';
 import { FloatingMentorSection } from './_components/FloatingMentorSection';
 import { listMentors, getMentorGlobeData } from '@/lib/mentorApi';
 import MentorDialog from './_components/MentorDialog';
-import MentorGlobe from './_components/MentorGlobe';
 
-// const MentorGlobeCesium = dynamic(() => import('./_components/MentorGlobeCesium'), {
-//   ssr: false,
-// });
+const MentorGlobe = dynamic(() => import('./_components/MentorGlobe'), {
+  ssr: false,
+});
 
 type MentorLocation = GlobeVisualization | MentorResponse;
 

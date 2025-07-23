@@ -1,5 +1,7 @@
-import { useEffect, useRef, useMemo } from 'react';
-import GlobeGL from 'react-globe.gl';
+'use client';
+
+import { useEffect, useRef, useMemo, useState } from 'react';
+import GlobeGL, { GlobeMethods } from 'react-globe.gl';
 import { MentorResponse } from '@/types/api';
 
 interface MentorGlobeProps {
@@ -16,18 +18,23 @@ interface GlobePoint extends MentorResponse {
 }
 
 export default function MentorGlobe({ mentors, onMentorClick }: MentorGlobeProps) {
-  const globeRef = useRef<typeof GlobeGL>(null);
+  const globeRef = useRef<GlobeMethods>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   const mentorPoints = useMemo(() => {
     return mentors.map(mentor => ({
       ...mentor,
       lat: mentor.latitude,
       lng: mentor.longitude,
-      size: 0.3,
+      size: 0.2,
       color: '#FF5733',
       label: mentor.full_name
     }));
   }, [mentors]);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (globeRef.current) {
@@ -43,6 +50,10 @@ export default function MentorGlobe({ mentors, onMentorClick }: MentorGlobeProps
       }, 1000);
     }
   }, []);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div className="w-full h-full">
