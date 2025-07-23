@@ -12,6 +12,7 @@ import MentorDialog from './_components/MentorDialog';
 
 const MentorGlobe = dynamic(() => import('./_components/MentorGlobe'), {
   ssr: false,
+  loading: () => <div className="w-full h-full bg-black" />
 });
 
 type MentorLocation = GlobeVisualization | MentorResponse;
@@ -123,6 +124,7 @@ export default function Home() {
         <MentorGlobe
           mentors={mentors.length > 0 ? mentors : globeMentors}
           onMentorClick={handleMentorClick}
+          isDialogOpen={!!selectedMentor}
         />
       </div>
 
