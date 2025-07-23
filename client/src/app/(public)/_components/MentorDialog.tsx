@@ -22,7 +22,7 @@ interface MentorDialogProps {
 const MentorDialog: React.FC<MentorDialogProps> = ({ selectedMentor, setSelectedMentor }) => {
     return (
         <Dialog open={!!selectedMentor} onOpenChange={(open: boolean) => !open && setSelectedMentor(null)}>
-            <DialogContent className="max-w-[95vw] lg:max-w-lg mx-auto p-0 text-foreground">
+            <DialogContent className="max-w-[95vw] lg:max-w-lg mx-auto p-0 text-background bg-transparent backdrop-blur-xl border-2 border-gray-600">
                 {selectedMentor && (
                     <Card className="border-0 bg-transparent relative mx-2 sm:mx-0">
                         <Button
@@ -40,7 +40,7 @@ const MentorDialog: React.FC<MentorDialogProps> = ({ selectedMentor, setSelected
                                         {selectedMentor.full_name.split(' ')[0][0]}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 text-background">
                                     <DialogTitle className="text-xl font-bold mb-1 leading-tight">
                                         {selectedMentor.full_name}
                                     </DialogTitle>
@@ -65,9 +65,9 @@ const MentorDialog: React.FC<MentorDialogProps> = ({ selectedMentor, setSelected
                             </div>
                         </CardHeader>
 
-                        <Separator className="" />
+                        <Separator className="bg-gray-600" />
 
-                        <CardContent className="px-4 sm:px-6">
+                        <CardContent className="px-4 sm:px-6 text-background">
                             <div className="space-y-4">
                                 <div>
                                     <h3 className="font-bold mb-4 text-sm tracking-wider uppercase">ABOUT</h3>
@@ -76,7 +76,7 @@ const MentorDialog: React.FC<MentorDialogProps> = ({ selectedMentor, setSelected
                                     </p>
                                 </div>
 
-                                <Separator className="" />
+                                <Separator className="bg-gray-600" />
 
                                 <div>
                                     <h3 className="font-bold mb-4 text-sm tracking-wider uppercase">RESEARCH KEYWORDS</h3>
@@ -93,7 +93,7 @@ const MentorDialog: React.FC<MentorDialogProps> = ({ selectedMentor, setSelected
                                     </div>
                                 </div>
 
-                                <Separator className="" />
+                                <Separator className="bg-gray-600" />
 
                                 <div className="grid grid-cols-2 gap-6">
                                     {selectedMentor.city && (

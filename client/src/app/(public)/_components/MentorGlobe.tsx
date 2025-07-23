@@ -211,7 +211,7 @@ export default function MentorGlobe({ mentors, onMentorClick, isDialogOpen = fal
         onCustomLayerHover={handleHover}
         onCustomLayerClick={(point: GlobePoint) => onMentorClick(point)}
         atmosphereColor="rgb(66, 133, 244)"
-        atmosphereAltitude={0.15}
+        atmosphereAltitude={0.1}
       />
 
       {hoveredMentor && !isDialogOpen && (
