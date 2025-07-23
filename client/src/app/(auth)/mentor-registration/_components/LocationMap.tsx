@@ -25,7 +25,7 @@ const ClientSideMap = dynamic(
     import('react-leaflet')
   ]).then(([L, RL]) => {
     const icon = L.default.icon({
-      iconUrl: '/marker-icon.png',
+      iconUrl: '/marker.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
     });

@@ -20,7 +20,6 @@ interface GlobePoint extends MentorResponse {
   label: string;
 }
 
-// Pre-create material for reuse
 const createMarkerMaterial = (texture: THREE.Texture) => {
   return new THREE.SpriteMaterial({
     map: texture,
@@ -41,21 +40,17 @@ export default function MentorGlobe({ mentors, onMentorClick, isDialogOpen = fal
   const coordsCacheRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
   const getOffsetCoordinates = useCallback((
-    mentors: MentorResponse[],
     currentMentor: MentorResponse,
     index: number,
     totalOverlapping: number
   ): { lat: number; lng: number } => {
     const cacheKey = `${currentMentor.latitude},${currentMentor.longitude},${index},${totalOverlapping}`;
+
     if (coordsCacheRef.current.has(cacheKey)) {
       return coordsCacheRef.current.get(cacheKey)!;
     }
 
-    const overlappingMentors = mentors.filter(
-      m => m.latitude === currentMentor.latitude && m.longitude === currentMentor.longitude
-    );
-
-    if (overlappingMentors.length <= 1) {
+    if (totalOverlapping <= 1) {
       const result = {
         lat: currentMentor.latitude,
         lng: currentMentor.longitude
@@ -91,12 +86,17 @@ export default function MentorGlobe({ mentors, onMentorClick, isDialogOpen = fal
     });
 
     return () => {
-      // Cleanup sprites and cache on unmount
-      spritesRef.current.forEach(sprite => {
-        sprite.material.dispose();
+      const sprites = spritesRef.current;
+      const cache = coordsCacheRef.current;
+
+      // Cleanup sprites
+      sprites.forEach(sprite => {
+        if (sprite.material) {
+          sprite.material.dispose();
+        }
       });
-      spritesRef.current.clear();
-      coordsCacheRef.current.clear();
+      sprites.clear();
+      cache.clear();
     };
   }, []);
 
@@ -104,7 +104,6 @@ export default function MentorGlobe({ mentors, onMentorClick, isDialogOpen = fal
     const locationCounts = new Map<string, number>();
     const locationIndices = new Map<string, number>();
 
-    // Pre-calculate counts in a single pass
     mentors.forEach(mentor => {
       const key = `${mentor.latitude},${mentor.longitude}`;
       locationCounts.set(key, (locationCounts.get(key) || 0) + 1);
@@ -116,7 +115,7 @@ export default function MentorGlobe({ mentors, onMentorClick, isDialogOpen = fal
       const index = locationIndices.get(key) || 0;
       locationIndices.set(key, index + 1);
 
-      const { lat, lng } = getOffsetCoordinates(mentors, mentor, index, count);
+      const { lat, lng } = getOffsetCoordinates(mentor, index, count);
 
       return {
         ...mentor,
@@ -145,7 +144,7 @@ export default function MentorGlobe({ mentors, onMentorClick, isDialogOpen = fal
     }
   }, []);
 
-  const handleMouseMove = useCallback(
+  const handleMouseMove = useMemo(() =>
     throttle((event: MouseEvent) => {
       if (tooltipRef.current && hoveredMentor && !isDialogOpen) {
         tooltipRef.current.style.left = `${event.clientX + 10}px`;
@@ -166,12 +165,15 @@ export default function MentorGlobe({ mentors, onMentorClick, isDialogOpen = fal
   const handleHover = useCallback((point: GlobePoint | null) => {
     if (!isDialogOpen) {
       setHoveredMentor(point);
-      if (point && spritesRef.current.has(point.id)) {
-        const sprite = spritesRef.current.get(point.id)!;
+      const sprites = spritesRef.current;
+
+      if (point?.id && sprites.has(point.id)) {
+        const sprite = sprites.get(point.id)!;
         sprite.material.opacity = 0.7;
       }
-      if (hoveredMentor && hoveredMentor.id !== point?.id && spritesRef.current.has(hoveredMentor.id)) {
-        const sprite = spritesRef.current.get(hoveredMentor.id)!;
+
+      if (hoveredMentor?.id && hoveredMentor.id !== point?.id && sprites.has(hoveredMentor.id)) {
+        const sprite = sprites.get(hoveredMentor.id)!;
         sprite.material.opacity = 1;
       }
     }
